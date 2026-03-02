@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "mcp-server-TLD": {
+    "mcp-server-tld": {
       "command": "npx",
       "args": ["-y", "mcp-server-tld"],
       "env": {
