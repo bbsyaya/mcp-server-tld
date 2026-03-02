@@ -41,39 +41,155 @@ export enum RewardType {
   SUN = "SUN",
 }
 
-export interface MiningReward {
-  type: RewardType;
-  jTokenAddress: string;
-  jTokenSymbol: string;
-  underlyingSymbol: string;
-  /** Unclaimed reward amount */
-  unclaimedAmount: string;
-  /** Claimed reward amount */
-  claimedAmount: string;
-  /** Total reward amount */
+export interface RewardBreakdown {
+  /** Reward token symbol (e.g., "USDD", "TRX") */
+  symbol: string;
+  /** New period reward amount */
+  amountNew: string;
+  /** Last period reward amount */
+  amountLast: string;
+  /** Total amount in this token */
   totalAmount: string;
-  /** Reward APY (additional to supply APY) */
-  miningAPY: number;
+  /** Token price in USD */
+  price: string;
+  /** Total value in USD */
+  valueUSD: string;
 }
 
-export interface MiningRewardsResult {
+export interface MarketMiningReward {
+  /** jToken address */
+  jTokenAddress: string;
+  /** Market symbol (e.g., "USDD", "WBTC") */
+  marketSymbol: string;
+  /** New period rewards in USD */
+  gainNewUSD: string;
+  /** Last period rewards in USD */
+  gainLastUSD: string;
+  /** Total rewards in USD */
+  totalUSD: string;
+  /** Breakdown by reward token */
+  breakdown: Record<string, RewardBreakdown>;
+  /** Mining status: 1=ongoing, 2=paused, 3=ended */
+  miningStatus: number;
+  /** Current period end time */
+  currEndTime: string;
+  /** Last period end time */
+  lastEndTime: string;
+}
+
+export interface AllMiningRewards {
+  /** User address */
   address: string;
+  /** Network */
   network: string;
-  /** Total unclaimed rewards across all markets */
+  /** Total new period rewards in USD */
+  totalGainNewUSD: string;
+  /** Total last period rewards in USD */
+  totalGainLastUSD: string;
+  /** Total unclaimed rewards in USD */
   totalUnclaimedUSD: string;
   /** Rewards by market */
-  rewards: MiningReward[];
-  /** Mining start/end times */
-  usddV1MiningEndTime: number; // 2025-01-26 21:00:00
-  usddV2MiningStartTime: number; // 2025-02-01 20:00:00
-  dualMiningStartTime: number; // Future date for dual mining
+  markets: MarketMiningReward[];
+  /** Raw API data for reference */
+  rawData?: any;
+}
+
+/**
+ * Calculate mining rewards from API data
+ * Based on justlend-app's getGainNewAndOldForMarkets logic from helper.jsx
+ */
+function calculateMiningRewards(apiData: any, address: string, network: string): AllMiningRewards {
+  const assetList = apiData.assetList || [];
+  let totalGainNewUSD = 0;
+  let totalGainLastUSD = 0;
+  const markets: MarketMiningReward[] = [];
+
+  // Process each market's mining data
+  assetList.forEach((asset: any) => {
+    if (!asset.miningInfo) return;
+
+    const marketReward: MarketMiningReward = {
+      jTokenAddress: asset.jtokenAddress || "",
+      marketSymbol: asset.collateralSymbol || "",
+      gainNewUSD: "0",
+      gainLastUSD: "0",
+      totalUSD: "0",
+      breakdown: {},
+      miningStatus: 1,
+      currEndTime: "",
+      lastEndTime: "",
+    };
+
+    let marketGainNew = 0;
+    let marketGainLast = 0;
+
+    // Process each reward token (USDD, TRX, etc.)
+    Object.keys(asset.miningInfo).forEach((key) => {
+      const rewardItem = asset.miningInfo[key];
+      if (!rewardItem || typeof rewardItem !== 'object') return;
+
+      const symbol = key.replace('NEW', '');
+      if (symbol === 'NFT') return; // Skip NFT rewards as per app logic
+
+      const price = parseFloat(rewardItem.price || 0);
+      const gainNew = parseFloat(rewardItem.gainNew || 0);
+      // miningStatus == 3 means ended, so gainLast should be 0
+      const gainLast = rewardItem.miningStatus == 3 ? 0 : parseFloat(rewardItem.gainLast || 0);
+
+      if (gainNew === 0 && gainLast === 0) return;
+
+      const gainNewUSD = gainNew * price;
+      const gainLastUSD = gainLast * price;
+
+      marketGainNew += gainNewUSD;
+      marketGainLast += gainLastUSD;
+
+      marketReward.breakdown[symbol] = {
+        symbol,
+        amountNew: gainNew.toString(),
+        amountLast: gainLast.toString(),
+        totalAmount: (gainNew + gainLast).toString(),
+        price: price.toString(),
+        valueUSD: (gainNewUSD + gainLastUSD).toString(),
+      };
+
+      // Update mining status and times from main token (USDD) or first valid token
+      if (key === 'USDDNEW' || !marketReward.currEndTime) {
+        marketReward.miningStatus = rewardItem.miningStatus || 1;
+        marketReward.currEndTime = rewardItem.currEndTime || "";
+        marketReward.lastEndTime = rewardItem.lastEndTime || "";
+      }
+    });
+
+    marketReward.gainNewUSD = marketGainNew.toString();
+    marketReward.gainLastUSD = marketGainLast.toString();
+    marketReward.totalUSD = (marketGainNew + marketGainLast).toString();
+
+    totalGainNewUSD += marketGainNew;
+    totalGainLastUSD += marketGainLast;
+
+    if (marketGainNew > 0 || marketGainLast > 0) {
+      markets.push(marketReward);
+    }
+  });
+
+  return {
+    address,
+    network,
+    totalGainNewUSD: totalGainNewUSD.toString(),
+    totalGainLastUSD: totalGainLastUSD.toString(),
+    totalUnclaimedUSD: (totalGainNewUSD + totalGainLastUSD).toString(),
+    markets,
+    rawData: apiData,
+  };
 }
 
 /**
  * Get mining rewards from JustLend API
  * The API provides comprehensive mining reward data including USDD and WBTC rewards
+ * Calculates rewards similar to justlend-app's helper.jsx getGainNewAndOldForMarkets logic
  */
-export async function getMiningRewardsFromAPI(address: string, network = "mainnet"): Promise<any> {
+export async function getMiningRewardsFromAPI(address: string, network = "mainnet"): Promise<AllMiningRewards> {
   const apiEndpoints = {
     mainnet: "https://labc.ablesdxd.link",
     nile: "https://nileapi.justlend.org",
@@ -93,14 +209,8 @@ export async function getMiningRewardsFromAPI(address: string, network = "mainne
       throw new Error(`API returned error code: ${data.code}`);
     }
 
-    // Extract mining reward information from account data
-    const accountData = data.data;
-    return {
-      assetList: accountData.assetList || [],
-      farmReward: accountData.farmReward || {},
-      totalMiningRewards: accountData.totalMiningRewards || "0",
-      miningAPY: accountData.miningAPY || {},
-    };
+    // Calculate mining rewards from API data
+    return calculateMiningRewards(data.data, address, network);
   } catch (error) {
     throw new Error(`Failed to fetch mining rewards from API: ${error instanceof Error ? error.message : String(error)}`);
   }

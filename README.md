@@ -24,6 +24,11 @@ Beyond JustLend-specific operations, the server also exposes a full set of **gen
 - **Account Data**: Full position analysis with API support
   - Contract-based: Health factor, collateral, borrow positions
   - API-based: Enhanced data with mining rewards, historical trends, risk metrics
+- **Mining Rewards**: Advanced mining reward calculation (based on justlend-app logic)
+  - Detailed breakdown by market and reward token (USDD, TRX, WBTC, etc.)
+  - Separates new period vs. last period rewards
+  - USD value calculation with live token prices
+  - Mining status tracking (ongoing/paused/ended) and period end times
 - **Supply**: Deposit TRX or TRC20 tokens to earn interest (mint jTokens)
 - **Borrow**: Borrow assets against your collateral with health factor monitoring
 - **Repay**: Repay outstanding borrows with full or partial amounts
