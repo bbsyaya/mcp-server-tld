@@ -15,6 +15,10 @@ Beyond JustLend-specific operations, the server also exposes a full set of **gen
 
 [JustLend DAO](https://justlend.org) is the largest lending protocol on TRON, based on the Compound V2 architecture. This MCP server wraps the full protocol functionality into tools and guided prompts that AI agents (Claude Desktop, Cursor, etc.) can use.
 
+**📌 Current Version: JustLend V1**
+
+This MCP server currently supports **JustLend V1** protocol. All contract addresses, ABIs, calculation functions, and lending operations are for V1.
+
 ### Key Capabilities
 
 #### JustLend Protocol

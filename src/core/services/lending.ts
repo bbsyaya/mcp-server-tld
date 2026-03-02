@@ -1,3 +1,18 @@
+/**
+ * JustLend V1 Lending Operations
+ *
+ * VERSION: JustLend V1
+ * All lending methods (supply, withdraw, borrow, repay, collateral management) are for JustLend V1.
+ * Based on Compound V2 protocol architecture with jToken (cToken) mechanism.
+ *
+ * Core operations:
+ * - Supply/Mint: Deposit assets to receive jTokens
+ * - Withdraw/Redeem: Burn jTokens to receive underlying assets
+ * - Borrow: Take loans against supplied collateral
+ * - Repay: Return borrowed assets
+ * - Enter/Exit Market: Enable/disable assets as collateral
+ */
+
 import { getWallet } from "./clients.js";
 import { getJustLendAddresses, getJTokenInfo, type JTokenInfo } from "../chains.js";
 import { JTOKEN_ABI, JTRX_MINT_ABI, COMPTROLLER_ABI, TRC20_ABI } from "../abis.js";
@@ -32,7 +47,9 @@ function resolveJToken(symbolOrAddress: string, network: string): JTokenInfo {
 // ============================================================================
 
 /**
- * Supply (deposit) assets into a JustLend market.
+ * Supply (deposit) assets into a JustLend V1 market.
+ *
+ * VERSION: V1 - Uses JustLend V1 mint() function (Compound V2-style)
  *
  * For TRC20 tokens: requires prior approve() of underlying to jToken contract.
  * For TRX: sends TRX as callValue.
@@ -71,7 +88,9 @@ export async function supply(
 // ============================================================================
 
 /**
- * Withdraw assets from a JustLend market.
+ * Withdraw assets from a JustLend V1 market.
+ *
+ * VERSION: V1 - Uses JustLend V1 redeemUnderlying() function (Compound V2-style)
  *
  * @param privateKey - Wallet private key
  * @param jTokenSymbol - e.g. "jUSDT"
@@ -94,7 +113,9 @@ export async function withdraw(
 }
 
 /**
- * Withdraw ALL supply from a market by redeeming all jTokens.
+ * Withdraw ALL supply from a V1 market by redeeming all jTokens.
+ *
+ * VERSION: V1 - Uses JustLend V1 redeem() function
  */
 export async function withdrawAll(
   privateKey: string,
@@ -121,7 +142,9 @@ export async function withdrawAll(
 // ============================================================================
 
 /**
- * Borrow assets from a JustLend market.
+ * Borrow assets from a JustLend V1 market.
+ *
+ * VERSION: V1 - Uses JustLend V1 borrow() function (Compound V2-style)
  * Requires the user to have collateral enabled (enterMarkets) and sufficient liquidity.
  */
 export async function borrow(
@@ -144,7 +167,9 @@ export async function borrow(
 // ============================================================================
 
 /**
- * Repay borrowed assets to a JustLend market.
+ * Repay borrowed assets to a JustLend V1 market.
+ *
+ * VERSION: V1 - Uses JustLend V1 repayBorrow() function (Compound V2-style)
  *
  * For TRC20: requires approval of underlying to jToken.
  * For TRX: sends callValue.
@@ -187,7 +212,9 @@ export async function repay(
 // ============================================================================
 
 /**
- * Enable a jToken market as collateral.
+ * Enable a jToken market as collateral in V1 Comptroller.
+ *
+ * VERSION: V1 - Uses JustLend V1 enterMarkets() function
  */
 export async function enterMarket(
   privateKey: string,
@@ -204,7 +231,9 @@ export async function enterMarket(
 }
 
 /**
- * Disable a jToken market as collateral.
+ * Disable a jToken market as collateral in V1 Comptroller.
+ *
+ * VERSION: V1 - Uses JustLend V1 exitMarket() function
  * Will fail if it would make the account undercollateralized.
  */
 export async function exitMarket(
@@ -226,7 +255,9 @@ export async function exitMarket(
 // ============================================================================
 
 /**
- * Approve a jToken contract to spend underlying TRC20 tokens.
+ * Approve a V1 jToken contract to spend underlying TRC20 tokens.
+ *
+ * VERSION: V1 - Approves underlying token for JustLend V1 jToken contracts
  * Required before supply() or repay() for TRC20-backed markets.
  *
  * @param amount - Amount to approve (human-readable), or "max" for unlimited

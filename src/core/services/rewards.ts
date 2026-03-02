@@ -1,8 +1,16 @@
 /**
- * JustLend Mining Rewards
+ * JustLend V1 Mining Rewards
+ *
+ * VERSION: JustLend V1
+ * All mining reward calculations are for JustLend V1 protocol.
  *
  * Handles mining rewards for supply markets (USDD, WBTC, etc.)
- * Based on JustLend's merkle distributor system
+ * Based on JustLend's merkle distributor system.
+ *
+ * Reward calculation logic matches justlend-app's helper.jsx getGainNewAndOldForMarkets function.
+ * - Separates new period (gainNew) and last period (gainLast) rewards
+ * - Supports dual-token mining (e.g., USDD + TRX)
+ * - Handles mining status (1=ongoing, 2=paused, 3=ended)
  */
 
 import { getTronWeb } from "./clients.js";
@@ -95,8 +103,10 @@ export interface AllMiningRewards {
 }
 
 /**
- * Calculate mining rewards from API data
- * Based on justlend-app's getGainNewAndOldForMarkets logic from helper.jsx
+ * Calculate mining rewards from API data (V1 calculation logic).
+ *
+ * VERSION: V1 - Based on justlend-app's getGainNewAndOldForMarkets logic from helper.jsx
+ * This function replicates the exact V1 mining reward calculation algorithm.
  */
 function calculateMiningRewards(apiData: any, address: string, network: string): AllMiningRewards {
   const assetList = apiData.assetList || [];
@@ -185,9 +195,11 @@ function calculateMiningRewards(apiData: any, address: string, network: string):
 }
 
 /**
- * Get mining rewards from JustLend API
- * The API provides comprehensive mining reward data including USDD and WBTC rewards
- * Calculates rewards similar to justlend-app's helper.jsx getGainNewAndOldForMarkets logic
+ * Get mining rewards from JustLend V1 API.
+ *
+ * VERSION: V1 - Queries JustLend V1 API and calculates V1 mining rewards
+ * The API provides comprehensive mining reward data including USDD and WBTC rewards.
+ * Calculates rewards using same logic as justlend-app's helper.jsx getGainNewAndOldForMarkets.
  */
 export async function getMiningRewardsFromAPI(address: string, network = "mainnet"): Promise<AllMiningRewards> {
   const apiEndpoints = {
@@ -242,7 +254,9 @@ export async function checkClaimableRewards(
 }
 
 /**
- * Claim mining rewards (requires merkle proof from API/backend)
+ * Claim mining rewards using V1 merkle distributor (requires merkle proof from API/backend).
+ *
+ * VERSION: V1 - Uses JustLend V1 Merkle Distributor contracts
  *
  * NOTE: This function requires merkle proof data which is typically
  * provided by the JustLend backend API. Users should:
@@ -290,8 +304,10 @@ export async function claimMiningRewards(
 }
 
 /**
- * Get USDD mining configuration
- * USDD has special mining periods with different reward tokens
+ * Get USDD V1 mining configuration.
+ *
+ * VERSION: V1 - JustLend V1 USDD mining program configuration
+ * USDD has special mining periods with different reward tokens (single vs dual-token mining).
  */
 export function getUSDDMiningConfig() {
   return {
@@ -313,8 +329,9 @@ export function getUSDDMiningConfig() {
 }
 
 /**
- * Get WBTC mining configuration
- * WBTC market has supply mining activity
+ * Get WBTC V1 mining configuration.
+ *
+ * VERSION: V1 - JustLend V1 WBTC market supply mining activity
  */
 export function getWBTCMiningConfig() {
   return {

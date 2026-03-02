@@ -3,6 +3,9 @@
  *
  * JustLend DAO is a Compound V2-fork lending protocol on TRON.
  * Core contracts: Comptroller, jTokens, PriceOracle, Lens.
+ *
+ * VERSION: JustLend V1
+ * All contract addresses, ABIs, and calculation logic in this file are for JustLend V1.
  */
 
 export enum TronNetwork {
@@ -19,10 +22,13 @@ export interface NetworkConfig {
 }
 
 /**
- * JustLend core contract addresses per network.
+ * JustLend V1 core contract addresses per network.
  *
- * NOTE: These addresses are based on publicly known deployments.
+ * NOTE: These addresses are based on publicly known JustLend V1 deployments.
  * Always verify against https://justlend.org and on-chain data.
+ *
+ * VERSION: V1
+ * These are all JustLend V1 contracts.
  */
 export interface JustLendAddresses {
   comptroller: string; // Unitroller (proxy for Comptroller)
@@ -75,10 +81,13 @@ export const NETWORKS: Record<TronNetwork, NetworkConfig> = {
 };
 
 /**
- * JustLend mainnet contract addresses.
+ * JustLend V1 mainnet and testnet contract addresses.
+ *
+ * VERSION: V1
+ * All addresses below are for JustLend V1 protocol.
  *
  * jToken list sourced from JustLend official docs & TronScan verified contracts.
- * Only the most common markets are included; more can be added.
+ * All 24 V1 jToken markets are included (synced from justlend-app config.js).
  */
 export const JUSTLEND_ADDRESSES: Record<TronNetwork, JustLendAddresses> = {
   [TronNetwork.Mainnet]: {

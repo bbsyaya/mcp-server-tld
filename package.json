@@ -1,7 +1,7 @@
 {
   "name": "mcp-server-tld",
-  "version": "1.0.7",
-  "description": "MCP server for JustLend DAO (TLD) on TRON blockchain. Supports supply, borrow, repay, withdraw, market data, mining rewards (USDD/WBTC), API integration, general TRON chain utilities, and AI-guided DeFi prompts.",
+  "version": "1.0.8",
+  "description": "MCP server for JustLend V1 DAO on TRON blockchain. Supports supply, borrow, repay, withdraw, market data, mining rewards (USDD/WBTC), API integration, general TRON chain utilities, and AI-guided DeFi prompts.",
   "type": "module",
   "module": "src/index.ts",
   "main": "build/index.js",
