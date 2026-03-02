@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * CLI entry point for mcp-server-justlend
+ * CLI entry point for mcp-server-TLD
  *
  * Usage:
- *   npx mcp-server-justlend          # stdio mode (default)
- *   npx mcp-server-justlend --http   # HTTP/SSE mode
+ *   npx mcp-server-TLD          # stdio mode (default)
+ *   npx mcp-server-TLD --http   # HTTP/SSE mode
  */
 
 const args = process.argv.slice(2);

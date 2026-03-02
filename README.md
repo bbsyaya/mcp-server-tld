@@ -1,10 +1,11 @@
-# MCP Server JustLend
+# mcp-server-TLD
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 ![TRON Network](https://img.shields.io/badge/Network-TRON-red)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.8+-3178C6)
 ![MCP](https://img.shields.io/badge/MCP-1.22.0+-blue)
 ![JustLend](https://img.shields.io/badge/Protocol-JustLend_DAO-green)
+![npm](https://img.shields.io/badge/npm-mcp--server--tld-CB3837)
 
 A Model Context Protocol (MCP) server that enables AI agents to interact with the **JustLend DAO** lending protocol on TRON. Supply assets, borrow against collateral, manage positions, and analyze DeFi portfolios — all through a unified AI interface.
 
@@ -58,8 +59,8 @@ Beyond JustLend-specific operations, the server also exposes a full set of **gen
 ## Installation
 
 ```bash
-git clone https://github.com/your-org/mcp-server-justlend.git
-cd mcp-server-justlend
+git clone https://github.com/your-org/mcp-server-TLD.git
+cd mcp-server-TLD
 npm install
 ```
 
@@ -91,7 +92,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
   "mcpServers": {
     "justlend": {
       "command": "npx",
-      "args": ["tsx", "/path/to/mcp-server-justlend/src/index.ts"],
+      "args": ["tsx", "/path/to/mcp-server-TLD/src/index.ts"],
       "env": {
         "TRONGRID_API_KEY": "your_key"
       }
@@ -109,7 +110,7 @@ Add to `.cursor/mcp.json`:
   "mcpServers": {
     "justlend": {
       "command": "npx",
-      "args": ["tsx", "/path/to/mcp-server-justlend/src/index.ts"]
+      "args": ["tsx", "/path/to/mcp-server-TLD/src/index.ts"]
     }
   }
 }
@@ -180,7 +181,7 @@ npm run dev
 ## Architecture
 
 ```
-mcp-server-justlend/
+mcp-server-TLD/
 ├── src/
 │   ├── core/
 │   │   ├── chains.ts          # Network configs + JustLend contract addresses

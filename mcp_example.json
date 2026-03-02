@@ -1,6 +1,6 @@
 {
   "mcpServers": {
-    "justlend": {
+    "mcp-server-TLD": {
       "command": "npx",
       "args": ["tsx", "src/index.ts"],
       "env": {
