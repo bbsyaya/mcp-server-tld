@@ -236,7 +236,7 @@ export function registerJustLendTools(server: McpServer) {
       try {
         const userAddress = address || services.getWalletAddress();
         const balance = await services.getTRXBalance(userAddress, network);
-        return { content: [{ type: "text", text: JSON.stringify({ address: userAddress, balance: `${balance} TRX` }, null, 2) }] };
+        return { content: [{ type: "text", text: JSON.stringify({ address: userAddress, balance: `${balance.formatted} TRX` }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
       }

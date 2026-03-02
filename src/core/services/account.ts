@@ -45,11 +45,19 @@ export interface AccountSummary {
 }
 
 function formatUnits(raw: bigint, decimals: number): string {
-  const divisor = 10 ** decimals;
-  const value = Number(raw) / divisor;
-  if (value > 1e6) return value.toFixed(2);
-  if (value > 1) return value.toFixed(6);
-  return value.toFixed(decimals);
+  const divisor = BigInt(10) ** BigInt(decimals);
+  const integer = raw / divisor;
+  const remainder = raw % divisor;
+
+  if (remainder === 0n) return integer.toString();
+
+  const fracFull = remainder.toString().padStart(decimals, "0");
+  // integer part is safe to cast to Number (no fractional digits)
+  const intNum = Number(integer);
+  const maxFrac = intNum > 1e6 ? 2 : intNum > 1 ? 6 : decimals;
+  const frac = fracFull.slice(0, maxFrac).replace(/0+$/, "");
+
+  return frac ? `${integer}.${frac}` : integer.toString();
 }
 
 /**
