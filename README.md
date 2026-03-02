@@ -19,6 +19,11 @@ Beyond JustLend-specific operations, the server also exposes a full set of **gen
 
 #### JustLend Protocol
 - **Market Data**: Real-time APYs, TVL, utilization rates, prices for all markets
+  - Direct contract queries for on-chain accuracy
+  - API-based queries for comprehensive market data (more stable, includes historical data and mining rewards)
+- **Account Data**: Full position analysis with API support
+  - Contract-based: Health factor, collateral, borrow positions
+  - API-based: Enhanced data with mining rewards, historical trends, risk metrics
 - **Supply**: Deposit TRX or TRC20 tokens to earn interest (mint jTokens)
 - **Borrow**: Borrow assets against your collateral with health factor monitoring
 - **Repay**: Repay outstanding borrows with full or partial amounts
@@ -131,7 +136,7 @@ npm run dev
 
 ## API Reference
 
-### Tools (20 total)
+### Tools (24 total)
 
 #### Wallet & Network
 | Tool | Description | Write? |
@@ -143,14 +148,18 @@ npm run dev
 #### Market Data
 | Tool | Description | Write? |
 |------|-------------|--------|
-| `get_market_data` | Detailed data for one market (APY, TVL, rates) | No |
-| `get_all_markets` | Overview of all markets | No |
-| `get_protocol_summary` | Comptroller config & protocol parameters | No |
+| `get_market_data` | Detailed data for one market (APY, TVL, rates) - Contract query | No |
+| `get_all_markets` | Overview of all markets - Contract query | No |
+| `get_protocol_summary` | Comptroller config & protocol parameters - Contract query | No |
+| `get_markets_from_api` | **[API]** All market data with mining rewards & trends | No |
+| `get_dashboard_from_api` | **[API]** Protocol-level statistics (TVL, users, etc.) | No |
+| `get_jtoken_details_from_api` | **[API]** Detailed jToken info with interest rate model | No |
 
 #### Account & Balances
 | Tool | Description | Write? |
 |------|-------------|--------|
-| `get_account_summary` | Full position: supplies, borrows, health factor | No |
+| `get_account_summary` | Full position: supplies, borrows, health factor - Contract query | No |
+| `get_account_data_from_api` | **[API]** Enhanced account data with mining rewards & trends | No |
 | `check_allowance` | Check TRC20 approval for jToken | No |
 | `get_trx_balance` | TRX balance | No |
 | `get_token_balance` | TRC20 token balance | No |

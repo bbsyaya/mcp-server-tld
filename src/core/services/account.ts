@@ -4,6 +4,19 @@ import { JTOKEN_ABI, COMPTROLLER_ABI, PRICE_ORACLE_ABI, TRC20_ABI } from "../abi
 
 const MANTISSA = 1e18;
 
+// JustLend API endpoints
+const JUSTLEND_API_ENDPOINTS = {
+  mainnet: "https://labc.ablesdxd.link",
+  nile: "https://nileapi.justlend.org",
+};
+
+function getApiHost(network: string): string {
+  const n = network.toLowerCase();
+  if (n === "mainnet" || n === "tron" || n === "trx") return JUSTLEND_API_ENDPOINTS.mainnet;
+  if (n === "nile" || n === "testnet") return JUSTLEND_API_ENDPOINTS.nile;
+  return JUSTLEND_API_ENDPOINTS.mainnet;
+}
+
 export interface AccountPosition {
   jTokenAddress: string;
   symbol: string;
@@ -219,4 +232,29 @@ export async function getTokenBalance(address: string, tokenAddress: string, net
     symbol: String(symbol),
     decimals: dec,
   };
+}
+
+/**
+ * Get user account data from JustLend API (more stable and comprehensive).
+ * Returns user's lending positions, balances, mining rewards, etc.
+ */
+export async function getAccountDataFromAPI(address: string, network = "mainnet"): Promise<any> {
+  const host = getApiHost(network);
+  const url = `${host}/justlend/account?addr=${address}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(`API returned error code: ${data.code}`);
+    }
+
+    return data.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch account data from API: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

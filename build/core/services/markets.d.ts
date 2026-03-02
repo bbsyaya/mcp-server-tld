@@ -39,4 +39,19 @@ export declare function getProtocolSummary(network?: string): Promise<{
     marketAddresses: any;
     network: string;
 }>;
+/**
+ * Get market data from JustLend API (more stable than direct contract queries).
+ * API returns comprehensive market data including APY, TVL, prices, etc.
+ */
+export declare function getMarketDataFromAPI(network?: string): Promise<any>;
+/**
+ * Get market dashboard data from JustLend API.
+ * Includes protocol-level statistics like total supply, total borrow, etc.
+ */
+export declare function getMarketDashboardFromAPI(network?: string): Promise<any>;
+/**
+ * Get detailed jToken information from JustLend API.
+ * @param jtokenAddr - jToken contract address
+ */
+export declare function getJTokenDetailsFromAPI(jtokenAddr: string, network?: string): Promise<any>;
 //# sourceMappingURL=markets.d.ts.map

@@ -2,14 +2,31 @@ import { getTronWeb } from "./clients.js";
 import { getJustLendAddresses, getAllJTokens, getJTokenInfo } from "../chains.js";
 import { JTOKEN_ABI, COMPTROLLER_ABI, PRICE_ORACLE_ABI, TRC20_ABI } from "../abis.js";
 const MANTISSA = 1e18;
+// JustLend API endpoints
+const JUSTLEND_API_ENDPOINTS = {
+    mainnet: "https://labc.ablesdxd.link",
+    nile: "https://nileapi.justlend.org",
+};
+function getApiHost(network) {
+    const n = network.toLowerCase();
+    if (n === "mainnet" || n === "tron" || n === "trx")
+        return JUSTLEND_API_ENDPOINTS.mainnet;
+    if (n === "nile" || n === "testnet")
+        return JUSTLEND_API_ENDPOINTS.nile;
+    return JUSTLEND_API_ENDPOINTS.mainnet;
+}
 function formatUnits(raw, decimals) {
-    const divisor = 10 ** decimals;
-    const value = Number(raw) / divisor;
-    if (value > 1e6)
-        return value.toFixed(2);
-    if (value > 1)
-        return value.toFixed(6);
-    return value.toFixed(decimals);
+    const divisor = BigInt(10) ** BigInt(decimals);
+    const integer = raw / divisor;
+    const remainder = raw % divisor;
+    if (remainder === 0n)
+        return integer.toString();
+    const fracFull = remainder.toString().padStart(decimals, "0");
+    // integer part is safe to cast to Number (no fractional digits)
+    const intNum = Number(integer);
+    const maxFrac = intNum > 1e6 ? 2 : intNum > 1 ? 6 : decimals;
+    const frac = fracFull.slice(0, maxFrac).replace(/0+$/, "");
+    return frac ? `${integer}.${frac}` : integer.toString();
 }
 /**
  * Get a user's full position across all JustLend markets.
@@ -153,5 +170,27 @@ export async function getTokenBalance(address, tokenAddress, network = "mainnet"
         symbol: String(symbol),
         decimals: dec,
     };
+}
+/**
+ * Get user account data from JustLend API (more stable and comprehensive).
+ * Returns user's lending positions, balances, mining rewards, etc.
+ */
+export async function getAccountDataFromAPI(address, network = "mainnet") {
+    const host = getApiHost(network);
+    const url = `${host}/justlend/account?addr=${address}`;
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        }
+        const data = await response.json();
+        if (data.code !== 0) {
+            throw new Error(`API returned error code: ${data.code}`);
+        }
+        return data.data;
+    }
+    catch (error) {
+        throw new Error(`Failed to fetch account data from API: ${error instanceof Error ? error.message : String(error)}`);
+    }
 }
 //# sourceMappingURL=account.js.map

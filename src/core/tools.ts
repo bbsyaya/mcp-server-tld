@@ -172,6 +172,68 @@ export function registerJustLendTools(server: McpServer) {
   );
 
   // ============================================================================
+  // API-BASED QUERIES (More stable and comprehensive)
+  // ============================================================================
+
+  server.registerTool(
+    "get_markets_from_api",
+    {
+      description: "Get all market data from JustLend API. More stable than contract queries. Returns comprehensive market data including APY, TVL, utilization, prices, mining rewards, etc.",
+      inputSchema: {
+        network: z.string().optional().describe("Network. Default: mainnet"),
+      },
+      annotations: { title: "Get Markets from API", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async ({ network = "mainnet" }) => {
+      try {
+        const data = await services.getMarketDataFromAPI(network);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (error: any) {
+        return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_dashboard_from_api",
+    {
+      description: "Get JustLend protocol dashboard from API. Returns protocol-level statistics: total supply, total borrow, TVL, number of suppliers/borrowers, etc.",
+      inputSchema: {
+        network: z.string().optional().describe("Network. Default: mainnet"),
+      },
+      annotations: { title: "Get Dashboard from API", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async ({ network = "mainnet" }) => {
+      try {
+        const data = await services.getMarketDashboardFromAPI(network);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (error: any) {
+        return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_jtoken_details_from_api",
+    {
+      description: "Get detailed jToken information from API. Returns comprehensive market details including interest rate model, reserve info, etc.",
+      inputSchema: {
+        jtokenAddr: z.string().describe("jToken contract address"),
+        network: z.string().optional().describe("Network. Default: mainnet"),
+      },
+      annotations: { title: "Get jToken Details from API", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async ({ jtokenAddr, network = "mainnet" }) => {
+      try {
+        const data = await services.getJTokenDetailsFromAPI(jtokenAddr, network);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+      } catch (error: any) {
+        return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  // ============================================================================
   // ACCOUNT / POSITION (Read-only)
   // ============================================================================
 
@@ -259,6 +321,27 @@ export function registerJustLendTools(server: McpServer) {
         const userAddress = address || services.getWalletAddress();
         const result = await services.getTokenBalance(userAddress, tokenAddress, network);
         return { content: [{ type: "text", text: JSON.stringify({ address: userAddress, ...result }, null, 2) }] };
+      } catch (error: any) {
+        return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+      }
+    },
+  );
+
+  server.registerTool(
+    "get_account_data_from_api",
+    {
+      description: "Get user account data from JustLend API. More stable and comprehensive than contract queries. Returns lending positions, balances, mining rewards, health factor, etc.",
+      inputSchema: {
+        address: z.string().describe("TRON address to check. Leave empty to use configured wallet.").optional(),
+        network: z.string().optional().describe("Network. Default: mainnet"),
+      },
+      annotations: { title: "Get Account Data from API", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    async ({ address, network = "mainnet" }) => {
+      try {
+        const userAddress = address || services.getWalletAddress();
+        const data = await services.getAccountDataFromAPI(userAddress, network);
+        return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
       }

@@ -6,6 +6,19 @@ import { JTOKEN_ABI, COMPTROLLER_ABI, PRICE_ORACLE_ABI } from "../abis.js";
 const BLOCKS_PER_YEAR = 10_512_000;
 const MANTISSA = 1e18;
 
+// JustLend API endpoints
+const JUSTLEND_API_ENDPOINTS = {
+  mainnet: "https://labc.ablesdxd.link",
+  nile: "https://nileapi.justlend.org",
+};
+
+function getApiHost(network: string): string {
+  const n = network.toLowerCase();
+  if (n === "mainnet" || n === "tron" || n === "trx") return JUSTLEND_API_ENDPOINTS.mainnet;
+  if (n === "nile" || n === "testnet") return JUSTLEND_API_ENDPOINTS.nile;
+  return JUSTLEND_API_ENDPOINTS.mainnet;
+}
+
 export interface MarketData {
   symbol: string;
   underlyingSymbol: string;
@@ -186,4 +199,79 @@ export async function getProtocolSummary(network = "mainnet") {
     marketAddresses: allMarkets,
     network,
   };
+}
+
+/**
+ * Get market data from JustLend API (more stable than direct contract queries).
+ * API returns comprehensive market data including APY, TVL, prices, etc.
+ */
+export async function getMarketDataFromAPI(network = "mainnet"): Promise<any> {
+  const host = getApiHost(network);
+  const url = `${host}/justlend/markets`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(`API returned error code: ${data.code}`);
+    }
+
+    return data.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch market data from API: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Get market dashboard data from JustLend API.
+ * Includes protocol-level statistics like total supply, total borrow, etc.
+ */
+export async function getMarketDashboardFromAPI(network = "mainnet"): Promise<any> {
+  const host = getApiHost(network);
+  const url = `${host}/justlend/markets/dashboard`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(`API returned error code: ${data.code}`);
+    }
+
+    return data.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch dashboard data from API: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+/**
+ * Get detailed jToken information from JustLend API.
+ * @param jtokenAddr - jToken contract address
+ */
+export async function getJTokenDetailsFromAPI(jtokenAddr: string, network = "mainnet"): Promise<any> {
+  const host = getApiHost(network);
+  const url = `${host}/justlend/markets/jtokenDetails?jtokenAddr=${jtokenAddr}`;
+
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+
+    if (data.code !== 0) {
+      throw new Error(`API returned error code: ${data.code}`);
+    }
+
+    return data.data;
+  } catch (error) {
+    throw new Error(`Failed to fetch jToken details from API: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

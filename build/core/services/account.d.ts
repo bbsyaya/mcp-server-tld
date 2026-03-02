@@ -62,4 +62,9 @@ export declare function getTokenBalance(address: string, tokenAddress: string, n
     symbol: string;
     decimals: number;
 }>;
+/**
+ * Get user account data from JustLend API (more stable and comprehensive).
+ * Returns user's lending positions, balances, mining rewards, etc.
+ */
+export declare function getAccountDataFromAPI(address: string, network?: string): Promise<any>;
 //# sourceMappingURL=account.d.ts.map
