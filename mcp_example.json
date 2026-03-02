@@ -2,7 +2,7 @@
   "mcpServers": {
     "mcp-server-TLD": {
       "command": "npx",
-      "args": ["tsx", "src/index.ts"],
+      "args": ["-y", "mcp-server-tld"],
       "env": {
         "TRONGRID_API_KEY": "SET_VIA_SYSTEM_ENV",
         "TRON_PRIVATE_KEY": "SET_VIA_SYSTEM_ENV"
