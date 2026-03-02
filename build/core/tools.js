@@ -450,5 +450,51 @@ export function registerJustLendTools(server) {
             return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
         }
     });
+    // ============================================================================
+    // MINING REWARDS
+    // ============================================================================
+    server.registerTool("get_mining_rewards", {
+        description: "Get mining rewards for supply markets (USDD, WBTC, etc.). Returns unclaimed rewards, mining APY, and reward breakdown from API.",
+        inputSchema: {
+            address: z.string().optional().describe("TRON address. Leave empty to use configured wallet."),
+            network: z.string().optional().describe("Network. Default: mainnet"),
+        },
+        annotations: { title: "Get Mining Rewards", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    }, async ({ address, network = "mainnet" }) => {
+        try {
+            const userAddress = address || services.getWalletAddress();
+            const rewards = await services.getMiningRewardsFromAPI(userAddress, network);
+            return { content: [{ type: "text", text: JSON.stringify(rewards, null, 2) }] };
+        }
+        catch (error) {
+            return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+        }
+    });
+    server.registerTool("get_usdd_mining_config", {
+        description: "Get USDD mining configuration including mining periods, reward tokens (USDD/TRX dual mining), and schedule.",
+        inputSchema: {},
+        annotations: { title: "Get USDD Mining Config", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    }, async () => {
+        try {
+            const config = services.getUSDDMiningConfig();
+            return { content: [{ type: "text", text: JSON.stringify(config, null, 2) }] };
+        }
+        catch (error) {
+            return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+        }
+    });
+    server.registerTool("get_wbtc_mining_config", {
+        description: "Get WBTC mining configuration and supply mining activity details.",
+        inputSchema: {},
+        annotations: { title: "Get WBTC Mining Config", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    }, async () => {
+        try {
+            const config = services.getWBTCMiningConfig();
+            return { content: [{ type: "text", text: JSON.stringify(config, null, 2) }] };
+        }
+        catch (error) {
+            return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
+        }
+    });
 }
 //# sourceMappingURL=tools.js.map

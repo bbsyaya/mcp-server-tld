@@ -26,6 +26,21 @@ export interface JustLendAddresses {
     priceOracle: string;
     lens: string;
     maximillion: string;
+    governorAlpha: string;
+    jst: string;
+    wjst: string;
+    /** Merkle distributor contracts for mining rewards */
+    merkleDistributors: {
+        main: string;
+        usdd: string;
+        strx: string;
+        multi: string;
+    };
+    /** sTRX staking related contracts */
+    strx: {
+        proxy: string;
+        market: string;
+    };
     /** Map of symbol → jToken address */
     jTokens: Record<string, JTokenInfo>;
 }

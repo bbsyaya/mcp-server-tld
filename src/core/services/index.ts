@@ -4,6 +4,7 @@ export * from "./wallet.js";
 export * from "./markets.js";
 export * from "./account.js";
 export * from "./lending.js";
+export * from "./rewards.js";
 
 // General TRON chain services
 export * from "./address.js";
