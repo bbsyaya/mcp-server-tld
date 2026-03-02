@@ -185,9 +185,10 @@ export async function checkAllowance(
 }
 
 /**
- * Get TRX balance for an address.
+ * Get TRX balance for an address as a formatted string (TRX units).
+ * For a richer return value use getTRXBalance from balance.ts.
  */
-export async function getTRXBalance(address: string, network = "mainnet"): Promise<string> {
+export async function getAccountTRXBalance(address: string, network = "mainnet"): Promise<string> {
   const tronWeb = getTronWeb(network);
   const balance = await tronWeb.trx.getBalance(address);
   return (Number(balance) / 1e6).toFixed(6);

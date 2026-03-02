@@ -1,5 +1,18 @@
-export * from "./wallet.js";
+// JustLend-specific services
 export * from "./clients.js";
+export * from "./wallet.js";
 export * from "./markets.js";
 export * from "./account.js";
 export * from "./lending.js";
+
+// General TRON chain services
+export * from "./address.js";
+export * from "./balance.js";
+export * from "./blocks.js";
+export * from "./contracts.js";
+export * from "./multicall-abi.js";
+export * from "./staking.js";
+export * from "./tokens.js";
+export * from "./transactions.js";
+export * from "./transfer.js";
+export * from "./utils.js";

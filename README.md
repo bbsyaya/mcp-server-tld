@@ -8,12 +8,15 @@
 
 A Model Context Protocol (MCP) server that enables AI agents to interact with the **JustLend DAO** lending protocol on TRON. Supply assets, borrow against collateral, manage positions, and analyze DeFi portfolios — all through a unified AI interface.
 
+Beyond JustLend-specific operations, the server also exposes a full set of **general-purpose TRON chain utilities** — balance queries, block/transaction data, token metadata, TRX transfers, smart contract reads/writes, staking (Stake 2.0), multicall, and more.
+
 ## Overview
 
 [JustLend DAO](https://justlend.org) is the largest lending protocol on TRON, based on the Compound V2 architecture. This MCP server wraps the full protocol functionality into tools and guided prompts that AI agents (Claude Desktop, Cursor, etc.) can use.
 
 ### Key Capabilities
 
+#### JustLend Protocol
 - **Market Data**: Real-time APYs, TVL, utilization rates, prices for all markets
 - **Supply**: Deposit TRX or TRC20 tokens to earn interest (mint jTokens)
 - **Borrow**: Borrow assets against your collateral with health factor monitoring
@@ -22,6 +25,17 @@ A Model Context Protocol (MCP) server that enables AI agents to interact with th
 - **Collateral Management**: Enter/exit markets, manage what counts as collateral
 - **Portfolio Analysis**: AI-guided risk assessment, health factor monitoring, optimization
 - **Token Approvals**: Manage TRC20 approvals for jToken contracts
+
+#### General TRON Chain
+- **Balances**: TRX balance (with Sun/TRX conversion), TRC20/TRC1155 token balances
+- **Blocks**: Latest block, block by number/hash, block number, chain ID
+- **Transactions**: Fetch transaction details, receipts, wait for confirmation
+- **Contracts**: Read/write any contract, fetch on-chain ABI, multicall (v2 & v3), deploy, estimate energy
+- **Token Metadata**: TRC20 info (name/symbol/decimals/supply), TRC721 metadata, TRC1155 URI
+- **Transfers**: Send TRX, transfer TRC20 tokens, approve spenders
+- **Staking (Stake 2.0)**: Freeze/unfreeze TRX for BANDWIDTH or ENERGY, withdraw expired unfreeze
+- **Address Utilities**: Hex ↔ Base58 conversion, address validation, resolution
+- **Wallet**: Sign messages, sign typed data (EIP-712), HD wallet derivation from mnemonic
 
 ## Supported Markets
 
@@ -39,7 +53,7 @@ A Model Context Protocol (MCP) server that enables AI agents to interact with th
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) 20.0.0 or higher
-- Optional: [TronGrid API key](https://www.trongrid.io/) for reliable mainnet access
+- Optional: [TronGrid API key](https://www.trongrid.io/) for reliable mainnet access (strongly recommended)
 
 ## Installation
 
@@ -56,13 +70,13 @@ npm install
 > **SECURITY**: Never save private keys in config files. Use environment variables.
 
 ```bash
-# Required for write operations (supply, borrow, repay, etc.)
+# Required for write operations (supply, borrow, transfer, stake, etc.)
 export TRON_PRIVATE_KEY="your_private_key_hex"
-# OR
+# OR use a mnemonic phrase
 export TRON_MNEMONIC="word1 word2 ... word12"
-export TRON_ACCOUNT_INDEX="0"  # Optional, default: 0
+export TRON_ACCOUNT_INDEX="0"   # Optional HD wallet account index, default: 0
 
-# Recommended for mainnet (avoids rate limiting)
+# Strongly recommended — avoids TronGrid 429 rate limiting on mainnet
 export TRONGRID_API_KEY="your_trongrid_api_key"
 ```
 
@@ -79,7 +93,7 @@ Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
       "command": "npx",
       "args": ["tsx", "/path/to/mcp-server-justlend/src/index.ts"],
       "env": {
-        "TRONGRID_API_KEY": "your_key (or set in system env)"
+        "TRONGRID_API_KEY": "your_key"
       }
     }
   }
@@ -169,31 +183,79 @@ npm run dev
 mcp-server-justlend/
 ├── src/
 │   ├── core/
-│   │   ├── chains.ts        # Network + JustLend contract addresses
-│   │   ├── abis.ts          # jToken, Comptroller, Oracle ABIs
-│   │   ├── tools.ts         # MCP tool registrations (20 tools)
-│   │   ├── prompts.ts       # AI-guided workflow prompts (5 prompts)
-│   │   ├── resources.ts     # Static protocol info resource
+│   │   ├── chains.ts          # Network configs + JustLend contract addresses
+│   │   ├── abis.ts            # jToken, Comptroller, Oracle, TRC20 ABIs
+│   │   ├── tools.ts           # MCP tool registrations
+│   │   ├── prompts.ts         # AI-guided workflow prompts
+│   │   ├── resources.ts       # Static protocol info resource
 │   │   └── services/
-│   │       ├── clients.ts   # TronWeb client factory (cached)
-│   │       ├── wallet.ts    # Private key / mnemonic management
-│   │       ├── markets.ts   # Market data reads (APY, TVL, prices)
-│   │       ├── account.ts   # User positions, liquidity, balances
-│   │       └── lending.ts   # Supply, borrow, repay, withdraw, collateral
+│   │       ├── # — JustLend-specific —
+│   │       ├── clients.ts     # TronWeb client factory (cached)
+│   │       ├── wallet.ts      # Key/mnemonic management, signMessage, signTypedData
+│   │       ├── markets.ts     # APY, TVL, utilization, prices
+│   │       ├── account.ts     # User positions, liquidity, allowances
+│   │       ├── lending.ts     # supply, borrow, repay, withdraw, collateral
+│   │       ├── # — General TRON chain —
+│   │       ├── address.ts     # Hex ↔ Base58 conversion, validation
+│   │       ├── balance.ts     # TRX balance (rich), TRC20/TRC1155 balances
+│   │       ├── blocks.ts      # Block queries, block number, chain ID
+│   │       ├── transactions.ts# getTransaction, getTransactionInfo, waitForTransaction
+│   │       ├── transfer.ts    # transferTRX, transferTRC20, approveTRC20
+│   │       ├── tokens.ts      # TRC20/TRC721/TRC1155 metadata
+│   │       ├── contracts.ts   # readContract, writeContract, multicall, deploy, estimateEnergy
+│   │       ├── multicall-abi.ts # Multicall2 & Multicall3 ABIs
+│   │       ├── staking.ts     # Stake 2.0: freeze, unfreeze, withdrawExpireUnfreeze
+│   │       └── utils.ts       # toSun/fromSun, formatJson, hexToNumber, isAddress, …
 │   ├── server/
-│   │   ├── server.ts        # MCP server init
-│   │   └── http-server.ts   # Express HTTP/SSE transport
-│   └── index.ts             # Stdio entry point
-├── bin/cli.js                # CLI entry for npx
+│   │   ├── server.ts          # MCP server init
+│   │   └── http-server.ts     # Express HTTP/SSE transport
+│   └── index.ts               # Stdio entry point
+├── bin/cli.js                 # CLI entry for npx
 └── tests/
+    └── core/
+        ├── chains.test.ts
+        └── services/
+            ├── services.test.ts    # Client cache, legacy balance tests
+            ├── address.test.ts     # Pure: address format conversion (16 tests)
+            ├── utils.test.ts       # Pure: unit conversions, formatters (26 tests)
+            ├── balance.test.ts     # Integration: TRX & TRC20 balances
+            ├── blocks.test.ts      # Integration: block queries
+            ├── contracts.test.ts   # Mixed: pure ABI helpers + integration reads
+            ├── tokens.test.ts      # Integration: TRC20 token metadata
+            ├── transactions.test.ts# Integration: transaction fetch
+            ├── transfer.test.ts    # Write: skipped by default (TEST_TRANSFER=1)
+            ├── staking.test.ts     # Write: skipped by default (TEST_STAKING=1)
+            └── wallet.test.ts      # Unit: skipped without TRON_PRIVATE_KEY
 ```
+
+## Testing
+
+```bash
+# Run all tests (pure/unit tests always pass; integration tests need network)
+npm test
+
+# Run individual test files (recommended to avoid TronGrid rate limits)
+npx vitest run tests/core/services/utils.test.ts
+npx vitest run tests/core/services/address.test.ts
+npx vitest run tests/core/services/balance.test.ts
+npx vitest run tests/core/services/blocks.test.ts
+npx vitest run tests/core/services/contracts.test.ts
+npx vitest run tests/core/services/transactions.test.ts
+npx vitest run tests/core/services/tokens.test.ts
+
+# Enable write/staking tests (uses real funds — use Nile testnet!)
+TRON_PRIVATE_KEY=xxx TEST_TRANSFER=1 npx vitest run tests/core/services/transfer.test.ts
+TRON_PRIVATE_KEY=xxx TEST_STAKING=1 npx vitest run tests/core/services/staking.test.ts
+```
+
+> **Rate limiting**: Integration tests make real RPC calls to TronGrid. Without `TRONGRID_API_KEY` the free tier limits to a few requests per second. Run test files individually, or set `TRONGRID_API_KEY` to avoid 429 errors.
 
 ## Security Considerations
 
 - **Private keys** are read from environment variables only, never exposed via MCP tools
 - **Write operations** are clearly marked with `destructiveHint: true` in MCP annotations
 - **Health factor checks** in prompts prevent dangerous borrowing
-- Always **test on Nile testnet** before mainnet
+- Always **test on Nile testnet** before mainnet operations
 - Be cautious with **unlimited approvals** (`approve_underlying` with `max`)
 - **Never share** your `claude_desktop_config.json` if it contains keys
 
@@ -210,6 +272,12 @@ mcp-server-justlend/
 
 **"Borrow 500 USDT against my TRX collateral"**
 → AI uses `borrow_assets` prompt: checks collateral → calculates new health factor → executes if safe
+
+**"What is the TRX balance of address TXxx...?"**
+→ AI calls the general-purpose TRX balance tool, returns balance in both TRX and Sun
+
+**"Freeze 100 TRX for ENERGY"**
+→ AI calls staking service to freeze via Stake 2.0, returns transaction hash
 
 ## License
 

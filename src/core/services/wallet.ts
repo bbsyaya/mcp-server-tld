@@ -56,3 +56,51 @@ export function getConfiguredPrivateKey(): string {
 export function getWalletAddress(): string {
   return getConfiguredWallet().address;
 }
+
+/** Alias matching the mcp-server-tron API. */
+export const getWalletAddressFromKey = getWalletAddress;
+
+/**
+ * Sign an arbitrary message using the configured wallet.
+ * TronWeb prefixes the message with the standard TRON message prefix.
+ * @returns Signature as a hex string.
+ */
+export async function signMessage(message: string): Promise<string> {
+  const { privateKey } = getConfiguredWallet();
+  const apiKey = process.env.TRONGRID_API_KEY;
+
+  const tronWeb = new TronWeb({
+    fullHost: "https://api.trongrid.io",
+    privateKey,
+    headers: apiKey ? { "TRON-PRO-API-KEY": apiKey } : undefined,
+  });
+
+  return tronWeb.trx.sign(message);
+}
+
+/**
+ * Sign typed data (EIP-712 / TRON-712) using the configured wallet.
+ * Requires a TronWeb version that supports _signTypedData.
+ */
+export async function signTypedData(
+  domain: object,
+  types: object,
+  value: object,
+): Promise<string> {
+  const { privateKey } = getConfiguredWallet();
+  const apiKey = process.env.TRONGRID_API_KEY;
+
+  const tronWeb = new TronWeb({
+    fullHost: "https://api.trongrid.io",
+    privateKey,
+    headers: apiKey ? { "TRON-PRO-API-KEY": apiKey } : undefined,
+  });
+
+  // @ts-ignore — TronWeb types may not expose _signTypedData yet
+  if (typeof tronWeb.trx._signTypedData === "function") {
+    // @ts-ignore
+    return tronWeb.trx._signTypedData(domain, types, value);
+  }
+
+  throw new Error("signTypedData not supported by this TronWeb version or configuration");
+}

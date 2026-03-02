@@ -14,7 +14,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  getTRXBalance,
+  getAccountTRXBalance,
   getTokenBalance,
 } from "../../../src/core/services/account.js";
 import { getTronWeb } from "../../../src/core/services/clients.js";
@@ -56,7 +56,7 @@ describe("TronWeb Client", () => {
 
 describe("Balance Services (Mainnet)", () => {
   it("should fetch TRX balance for a known address", async () => {
-    const balance = await getTRXBalance(TEST_ADDRESS, "mainnet");
+    const balance = await getAccountTRXBalance(TEST_ADDRESS, "mainnet");
     expect(balance).toBeDefined();
     expect(typeof balance).toBe("string");
     const numBalance = parseFloat(balance);
@@ -79,7 +79,7 @@ describe("Balance Services (Mainnet)", () => {
   it("should return zero balance for empty address", async () => {
     await delay(1500);
     // Use a valid but likely empty address
-    const balance = await getTRXBalance("TJCnKsPa7y5okkXvQAidZBzqx3QyQ6sxMW", "mainnet");
+    const balance = await getAccountTRXBalance("TJCnKsPa7y5okkXvQAidZBzqx3QyQ6sxMW", "mainnet");
     expect(balance).toBeDefined();
     expect(typeof balance).toBe("string");
     console.log(`Empty address TRX Balance: ${balance} TRX`);
