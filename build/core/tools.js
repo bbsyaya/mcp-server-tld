@@ -88,33 +88,24 @@ export function registerJustLendTools(server) {
         }
     });
     server.registerTool("get_all_markets", {
-        description: "Get overview data for ALL JustLend markets at once: APYs, TVL, utilization rates, prices.",
+        description: "Get overview data for ALL JustLend markets including supply APY, borrow APY, mining rewards APY, " +
+            "underlying staking yield, total supply APY, and TVL. " +
+            "Mining APY is calculated from on-chain supply mining programs (USDD/TRX dual mining, WBTC mining, etc.). " +
+            "totalSupplyAPY = base supply APY + underlying staking APY + mining APY.",
         inputSchema: {
             network: z.string().optional().describe("Network. Default: mainnet"),
         },
         annotations: { title: "Get All Markets", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
     }, async ({ network = "mainnet" }) => {
         try {
-            const markets = await services.getAllMarketData(network);
+            const markets = await services.getAllMarketOverview(network);
             return {
                 content: [{
                         type: "text",
                         text: JSON.stringify({
                             totalMarkets: markets.length,
-                            markets: markets.map((m) => ({
-                                symbol: m.symbol,
-                                underlyingSymbol: m.underlyingSymbol,
-                                supplyAPY: `${m.supplyAPY}%`,
-                                borrowAPY: `${m.borrowAPY}%`,
-                                totalSupply: m.totalSupply,
-                                totalBorrows: m.totalBorrows,
-                                availableLiquidity: m.availableLiquidity,
-                                utilizationRate: `${m.utilizationRate}%`,
-                                collateralFactor: `${m.collateralFactor}%`,
-                                priceUSD: m.underlyingPriceUSD,
-                                mintPaused: m.mintPaused,
-                                borrowPaused: m.borrowPaused,
-                            })),
+                            markets,
+                            note: "totalSupplyAPY = supplyAPY + underlyingIncrementAPY + miningAPY. miningAPY is calculated from daily mining rewards and TVL. underlyingIncrementAPY is the staking yield for wrapped/staked assets (e.g. sTRX ~5.88%, wstUSDT ~1.63%).",
                         }, null, 2),
                     }],
             };

@@ -60,6 +60,42 @@ export declare function getProtocolSummary(network?: string): Promise<{
  * API calculates data using same V1 contract logic but provides pre-computed results.
  */
 export declare function getMarketDataFromAPI(network?: string): Promise<any>;
+export interface MarketOverview {
+    symbol: string;
+    underlyingSymbol: string;
+    jTokenAddress: string;
+    underlyingAddress: string;
+    /** Base supply APY from lending interest */
+    supplyAPY: string;
+    /** Borrow APY */
+    borrowAPY: string;
+    /** Total deposited value in USD */
+    depositedUSD: string;
+    /** Total borrowed value in USD */
+    borrowedUSD: string;
+    /** Collateral factor percentage */
+    collateralFactor: string;
+    /** Underlying asset increment APY (e.g. sTRX staking yield, wstUSDT staking yield) */
+    underlyingIncrementAPY: string;
+    /** Mining reward USD per day (from supply mining programs) */
+    miningRewardUSD24h: number;
+    /** Mining APY calculated from daily rewards and TVL */
+    miningAPY: string;
+    /** Mining reward breakdown */
+    miningRewardDetail: string;
+    /** Whether supply is paused */
+    mintPaused: boolean;
+    /** Whether borrow is paused */
+    borrowPaused: boolean;
+    /** Total APY = supplyAPY + underlyingIncrementAPY + miningAPY */
+    totalSupplyAPY: string;
+}
+/**
+ * Get all market data with mining rewards from API.
+ * Combines markets list API with jToken details API to get mining APY.
+ * This is the recommended method for comprehensive market overview.
+ */
+export declare function getAllMarketOverview(network?: string): Promise<MarketOverview[]>;
 /**
  * Get market dashboard data from JustLend V1 API.
  * Includes protocol-level statistics like total supply, total borrow, etc.
