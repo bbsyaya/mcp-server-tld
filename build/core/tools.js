@@ -245,9 +245,13 @@ export function registerJustLendTools(server) {
         }
     });
     server.registerTool("get_token_balance", {
-        description: "Get TRC20 token balance for an address.",
+        description: "Get TRC20 token balance for an address. You can pass either a token symbol (e.g. 'USDD', 'USDT', 'ETH') or a contract address. " +
+            "When using a symbol, it resolves to the correct contract address from JustLend markets automatically. " +
+            "IMPORTANT: Always prefer using token symbols over raw addresses to avoid using outdated/wrong contract addresses. " +
+            "For example, use 'USDD' instead of a raw address — the old USDD (TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn) is deprecated. " +
+            "The returned balance is already formatted in human-readable token units (decimals already applied). Do NOT divide the balance by decimals again.",
         inputSchema: {
-            tokenAddress: z.string().describe("TRC20 token contract address"),
+            tokenAddress: z.string().describe("Token symbol (e.g. 'USDD', 'USDT', 'TRX', 'ETH', 'BTC', 'SUN', 'JST', 'WIN', 'BTT', 'NFT', 'TUSD', 'WBTC', 'USD1', 'wstUSDT', 'sTRX') or TRC20 token contract address. Prefer using symbol names."),
             address: z.string().optional().describe("TRON address. Default: configured wallet"),
             network: z.string().optional().describe("Network. Default: mainnet"),
         },
@@ -255,8 +259,23 @@ export function registerJustLendTools(server) {
     }, async ({ tokenAddress, address, network = "mainnet" }) => {
         try {
             const userAddress = address || services.getWalletAddress();
-            const result = await services.getTokenBalance(userAddress, tokenAddress, network);
-            return { content: [{ type: "text", text: JSON.stringify({ address: userAddress, ...result }, null, 2) }] };
+            // Resolve token symbol to contract address from JustLend markets
+            let resolvedAddress = tokenAddress;
+            const allTokens = getAllJTokens(network);
+            // Try to match by underlying symbol (case-insensitive)
+            const matchedToken = allTokens.find((t) => t.underlyingSymbol.toLowerCase() === tokenAddress.toLowerCase() && t.underlying);
+            if (matchedToken) {
+                resolvedAddress = matchedToken.underlying;
+            }
+            const result = await services.getTokenBalance(userAddress, resolvedAddress, network);
+            return { content: [{ type: "text", text: JSON.stringify({
+                            address: userAddress,
+                            balance: result.balance,
+                            balanceNote: "This balance is already in human-readable token units (decimals already applied). Do not divide again.",
+                            symbol: result.symbol,
+                            decimals: result.decimals,
+                            tokenAddress: resolvedAddress,
+                        }, null, 2) }] };
         }
         catch (error) {
             return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };

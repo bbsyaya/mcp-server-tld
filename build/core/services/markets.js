@@ -1,7 +1,14 @@
+/**
+ * JustLend V1 Market Data Services
+ *
+ * VERSION: JustLend V1
+ * All calculation functions (APY, utilization, exchange rate) are based on JustLend V1 logic.
+ * Interest rate model: Compound V2-style per-block rates.
+ */
 import { getTronWeb } from "./clients.js";
 import { getJustLendAddresses, getAllJTokens } from "../chains.js";
 import { JTOKEN_ABI, COMPTROLLER_ABI, PRICE_ORACLE_ABI } from "../abis.js";
-// TRON produces ~1 block per 3 seconds, ~28,800 blocks/day, ~10,512,000 blocks/year
+// V1 Constants: TRON produces ~1 block per 3 seconds, ~28,800 blocks/day, ~10,512,000 blocks/year
 const BLOCKS_PER_YEAR = 10_512_000;
 const MANTISSA = 1e18;
 // JustLend API endpoints
@@ -18,8 +25,10 @@ function getApiHost(network) {
     return JUSTLEND_API_ENDPOINTS.mainnet;
 }
 /**
- * Convert per-block rate to APY percentage.
+ * Convert per-block rate to APY percentage (V1 calculation).
  * APY = ((1 + ratePerBlock)^blocksPerYear - 1) * 100
+ *
+ * VERSION: V1 - Uses Compound V2 per-block interest rate model
  */
 function rateToAPY(ratePerBlock) {
     const rate = Number(ratePerBlock) / MANTISSA;
@@ -40,7 +49,9 @@ function formatUnits(raw, decimals) {
     return value.toFixed(decimals);
 }
 /**
- * Get full market data for a single jToken market.
+ * Get full market data for a single jToken market (V1).
+ *
+ * VERSION: V1 - Queries JustLend V1 contracts using Compound V2 ABI
  */
 export async function getMarketData(jTokenInfo, network = "mainnet") {
     const tronWeb = getTronWeb(network);
@@ -112,7 +123,9 @@ export async function getMarketData(jTokenInfo, network = "mainnet") {
     };
 }
 /**
- * Get market data for all listed JustLend markets.
+ * Get market data for all listed JustLend V1 markets.
+ *
+ * VERSION: V1 - Queries all V1 jToken markets
  */
 export async function getAllMarketData(network = "mainnet") {
     const tokens = getAllJTokens(network);
@@ -122,7 +135,9 @@ export async function getAllMarketData(network = "mainnet") {
         .map((r) => r.value);
 }
 /**
- * Get protocol-level summary from Comptroller.
+ * Get protocol-level summary from V1 Comptroller.
+ *
+ * VERSION: V1 - Queries JustLend V1 Comptroller contract
  */
 export async function getProtocolSummary(network = "mainnet") {
     const tronWeb = getTronWeb(network);
@@ -145,8 +160,11 @@ export async function getProtocolSummary(network = "mainnet") {
     };
 }
 /**
- * Get market data from JustLend API (more stable than direct contract queries).
+ * Get market data from JustLend V1 API (more stable than direct contract queries).
  * API returns comprehensive market data including APY, TVL, prices, etc.
+ *
+ * VERSION: V1 - Queries JustLend V1 API endpoints
+ * API calculates data using same V1 contract logic but provides pre-computed results.
  */
 export async function getMarketDataFromAPI(network = "mainnet") {
     const host = getApiHost(network);
@@ -167,8 +185,10 @@ export async function getMarketDataFromAPI(network = "mainnet") {
     }
 }
 /**
- * Get market dashboard data from JustLend API.
+ * Get market dashboard data from JustLend V1 API.
  * Includes protocol-level statistics like total supply, total borrow, etc.
+ *
+ * VERSION: V1 - Queries JustLend V1 API
  */
 export async function getMarketDashboardFromAPI(network = "mainnet") {
     const host = getApiHost(network);
@@ -189,8 +209,10 @@ export async function getMarketDashboardFromAPI(network = "mainnet") {
     }
 }
 /**
- * Get detailed jToken information from JustLend API.
- * @param jtokenAddr - jToken contract address
+ * Get detailed jToken information from JustLend V1 API.
+ * @param jtokenAddr - jToken contract address (V1)
+ *
+ * VERSION: V1 - Queries JustLend V1 API for jToken details
  */
 export async function getJTokenDetailsFromAPI(jtokenAddr, network = "mainnet") {
     const host = getApiHost(network);
