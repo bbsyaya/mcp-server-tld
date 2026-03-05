@@ -242,19 +242,24 @@ export function registerJustLendTools(server) {
             "For example, use 'USDD' instead of a raw address — the old USDD (TPYmHEhy5n8TCEfYGqW2rPxsghSfzghPDn) is deprecated. " +
             "The returned balance is already formatted in human-readable token units (decimals already applied). Do NOT divide the balance by decimals again.",
         inputSchema: {
-            tokenAddress: z.string().describe("Token symbol (e.g. 'USDD', 'USDT', 'TRX', 'ETH', 'BTC', 'SUN', 'JST', 'WIN', 'BTT', 'NFT', 'TUSD', 'WBTC', 'USD1', 'wstUSDT', 'sTRX') or TRC20 token contract address. Prefer using symbol names."),
+            token: z.string().optional().describe("Token symbol (e.g. 'USDD', 'USDT', 'TRX', 'ETH', 'BTC', 'SUN', 'JST', 'WIN', 'BTT', 'NFT', 'TUSD', 'WBTC', 'USD1', 'wstUSDT', 'sTRX'). Preferred over tokenAddress."),
+            tokenAddress: z.string().optional().describe("TRC20 token contract address. Use 'token' parameter with a symbol name instead when possible."),
             address: z.string().optional().describe("TRON address. Default: configured wallet"),
             network: z.string().optional().describe("Network. Default: mainnet"),
         },
         annotations: { title: "Get Token Balance", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-    }, async ({ tokenAddress, address, network = "mainnet" }) => {
+    }, async ({ token, tokenAddress, address, network = "mainnet" }) => {
         try {
+            const tokenInput = token || tokenAddress;
+            if (!tokenInput) {
+                return { content: [{ type: "text", text: "Error: Either 'token' (symbol) or 'tokenAddress' (contract address) is required." }], isError: true };
+            }
             const userAddress = address || services.getWalletAddress();
             // Resolve token symbol to contract address from JustLend markets
-            let resolvedAddress = tokenAddress;
+            let resolvedAddress = tokenInput;
             const allTokens = getAllJTokens(network);
             // Try to match by underlying symbol (case-insensitive)
-            const matchedToken = allTokens.find((t) => t.underlyingSymbol.toLowerCase() === tokenAddress.toLowerCase() && t.underlying);
+            const matchedToken = allTokens.find((t) => t.underlyingSymbol.toLowerCase() === tokenInput.toLowerCase() && t.underlying);
             if (matchedToken) {
                 resolvedAddress = matchedToken.underlying;
             }
