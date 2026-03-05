@@ -327,7 +327,7 @@ const TYPICAL_RESOURCES: Record<string, { energy: number; bandwidth: number }> =
 
 /** Current TRON mainnet resource prices (SUN per unit). May change via governance votes. */
 const RESOURCE_PRICES = {
-  energyPriceSun: 420,     // 420 SUN per energy unit
+  energyPriceSun: 100,     // 420 SUN per energy unit
   bandwidthPriceSun: 1000, // 1000 SUN per bandwidth point
   freeBandwidthPerDay: 1500, // free bandwidth for activated accounts
   sunPerTRX: 1_000_000,
@@ -392,6 +392,13 @@ async function trySimulateEnergy(
 
 /**
  * Build a step estimate from simulation result with fallback to typical values.
+ *
+ * triggerConstantContract is a static simulation that does NOT fully account for
+ * storage write costs (SSTORE) or energy penalties on high-traffic contracts.
+ * For write operations like approve/mint/borrow, it often returns significantly
+ * lower energy than the actual on-chain cost (e.g. 7,350 vs 22,350 for approve).
+ *
+ * To avoid underestimating, we take the MAXIMUM of simulation and typical values.
  */
 function buildStep(
   step: string,
@@ -400,12 +407,18 @@ function buildStep(
   typicalKey: string,
 ): StepEstimate {
   const typical = TYPICAL_RESOURCES[typicalKey];
+  // Use max(simulation, typical) because simulation underestimates write operations
+  const simEnergy = simResult.energy;
+  const energyEstimate = simEnergy !== null
+    ? Math.max(simEnergy, typical.energy)
+    : typical.energy;
+  const energySource: StepEstimate["energySource"] = simEnergy !== null ? "simulation" : "typical";
   return {
     step,
     description,
-    energyEstimate: simResult.energy ?? typical.energy,
+    energyEstimate,
     bandwidthEstimate: typical.bandwidth,
-    energySource: simResult.energy !== null ? "simulation" : "typical",
+    energySource,
     ...(simResult.error ? { simulationError: simResult.error } : {}),
   };
 }

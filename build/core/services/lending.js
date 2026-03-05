@@ -278,15 +278,28 @@ async function trySimulateEnergy(tronWeb, ownerAddress, contractAddress, functio
 }
 /**
  * Build a step estimate from simulation result with fallback to typical values.
+ *
+ * triggerConstantContract is a static simulation that does NOT fully account for
+ * storage write costs (SSTORE) or energy penalties on high-traffic contracts.
+ * For write operations like approve/mint/borrow, it often returns significantly
+ * lower energy than the actual on-chain cost (e.g. 7,350 vs 22,350 for approve).
+ *
+ * To avoid underestimating, we take the MAXIMUM of simulation and typical values.
  */
 function buildStep(step, description, simResult, typicalKey) {
     const typical = TYPICAL_RESOURCES[typicalKey];
+    // Use max(simulation, typical) because simulation underestimates write operations
+    const simEnergy = simResult.energy;
+    const energyEstimate = simEnergy !== null
+        ? Math.max(simEnergy, typical.energy)
+        : typical.energy;
+    const energySource = simEnergy !== null ? "simulation" : "typical";
     return {
         step,
         description,
-        energyEstimate: simResult.energy ?? typical.energy,
+        energyEstimate,
         bandwidthEstimate: typical.bandwidth,
-        energySource: simResult.energy !== null ? "simulation" : "typical",
+        energySource,
         ...(simResult.error ? { simulationError: simResult.error } : {}),
     };
 }
