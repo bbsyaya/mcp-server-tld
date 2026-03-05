@@ -253,7 +253,7 @@ const TYPICAL_RESOURCES = {
 };
 /** Current TRON mainnet resource prices (SUN per unit). May change via governance votes. */
 const RESOURCE_PRICES = {
-    energyPriceSun: 420, // 420 SUN per energy unit
+    energyPriceSun: 100, // 420 SUN per energy unit
     bandwidthPriceSun: 1000, // 1000 SUN per bandwidth point
     freeBandwidthPerDay: 1500, // free bandwidth for activated accounts
     sunPerTRX: 1_000_000,
