@@ -123,4 +123,35 @@ export declare function claimRewards(privateKey: string, network?: string): Prom
     txID: string;
     message: string;
 }>;
+interface StepEstimate {
+    step: string;
+    description: string;
+    energyEstimate: number;
+    bandwidthEstimate: number;
+    energySource: "simulation" | "typical";
+    simulationError?: string;
+}
+export interface ResourceEstimation {
+    operation: string;
+    market: string;
+    steps: StepEstimate[];
+    totalEnergy: number;
+    totalBandwidth: number;
+    /** Estimated TRX cost if all energy is paid by burning TRX (no staked energy). */
+    estimatedTRXCost: string;
+    /** Breakdown of TRX cost */
+    costBreakdown: {
+        energyCostTRX: string;
+        bandwidthCostTRX: string;
+        note: string;
+    };
+    note: string;
+}
+export type LendingOperation = "supply" | "withdraw" | "withdraw_all" | "borrow" | "repay" | "enter_market" | "exit_market" | "approve" | "claim_rewards";
+/**
+ * Estimate energy, bandwidth, and TRX cost for any JustLend operation.
+ * Tries on-chain simulation first, falls back to historical typical values.
+ */
+export declare function estimateLendingEnergy(operation: LendingOperation, jTokenSymbol: string, amount: string, ownerAddress: string, network?: string): Promise<ResourceEstimation>;
+export {};
 //# sourceMappingURL=lending.d.ts.map

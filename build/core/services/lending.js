@@ -12,7 +12,7 @@
  * - Repay: Return borrowed assets
  * - Enter/Exit Market: Enable/disable assets as collateral
  */
-import { getWallet } from "./clients.js";
+import { getTronWeb, getWallet } from "./clients.js";
 import { getJustLendAddresses, getJTokenInfo } from "../chains.js";
 import { JTOKEN_ABI, JTRX_MINT_ABI, COMPTROLLER_ABI, TRC20_ABI } from "../abis.js";
 const MAX_UINT256 = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
@@ -229,5 +229,194 @@ export async function claimRewards(privateKey, network = "mainnet") {
     const comptroller = tronWeb.contract(COMPTROLLER_ABI, addresses.comptroller);
     const txID = await comptroller.methods.claimReward(walletAddress).send();
     return { txID, message: `Claimed JustLend rewards for ${walletAddress}` };
+}
+// ============================================================================
+// RESOURCE ESTIMATION (Energy + Bandwidth + TRX Cost)
+// ============================================================================
+/**
+ * Typical resource costs for JustLend operations (based on historical on-chain data).
+ * Energy: computational cost. Bandwidth: transaction size cost.
+ * Used as fallback when triggerConstantContract simulation reverts.
+ */
+const TYPICAL_RESOURCES = {
+    approve: { energy: 22000, bandwidth: 265 },
+    supply_trx: { energy: 150000, bandwidth: 280 },
+    supply_trc20: { energy: 200000, bandwidth: 310 },
+    withdraw: { energy: 180000, bandwidth: 300 },
+    withdraw_all: { energy: 180000, bandwidth: 300 },
+    borrow: { energy: 200000, bandwidth: 310 },
+    repay_trx: { energy: 150000, bandwidth: 280 },
+    repay_trc20: { energy: 180000, bandwidth: 320 },
+    enter_market: { energy: 150000, bandwidth: 300 },
+    exit_market: { energy: 100000, bandwidth: 280 },
+    claim_rewards: { energy: 120000, bandwidth: 330 },
+};
+/** Current TRON mainnet resource prices (SUN per unit). May change via governance votes. */
+const RESOURCE_PRICES = {
+    energyPriceSun: 420, // 420 SUN per energy unit
+    bandwidthPriceSun: 1000, // 1000 SUN per bandwidth point
+    freeBandwidthPerDay: 1500, // free bandwidth for activated accounts
+    sunPerTRX: 1_000_000,
+};
+/**
+ * Helper: try on-chain simulation via triggerConstantContract, return energy or null.
+ */
+async function trySimulateEnergy(tronWeb, ownerAddress, contractAddress, functionSelector, params, options = {}) {
+    try {
+        const result = await tronWeb.transactionBuilder.triggerConstantContract(contractAddress, functionSelector, options, params, ownerAddress);
+        if (result?.result?.result) {
+            return { energy: (result.energy_used || 0) + (result.energy_penalty || 0) };
+        }
+        const errorMsg = result?.result?.message
+            ? Buffer.from(result.result.message, "hex").toString()
+            : "simulation reverted";
+        return { energy: null, error: errorMsg };
+    }
+    catch (e) {
+        return { energy: null, error: e.message };
+    }
+}
+/**
+ * Build a step estimate from simulation result with fallback to typical values.
+ */
+function buildStep(step, description, simResult, typicalKey) {
+    const typical = TYPICAL_RESOURCES[typicalKey];
+    return {
+        step,
+        description,
+        energyEstimate: simResult.energy ?? typical.energy,
+        bandwidthEstimate: typical.bandwidth,
+        energySource: simResult.energy !== null ? "simulation" : "typical",
+        ...(simResult.error ? { simulationError: simResult.error } : {}),
+    };
+}
+/**
+ * Calculate TRX cost from energy and bandwidth totals.
+ */
+function calculateTRXCost(totalEnergy, totalBandwidth) {
+    const energyCost = totalEnergy * RESOURCE_PRICES.energyPriceSun;
+    const bandwidthCost = totalBandwidth * RESOURCE_PRICES.bandwidthPriceSun;
+    const totalCost = energyCost + bandwidthCost;
+    return {
+        energyCostTRX: (energyCost / RESOURCE_PRICES.sunPerTRX).toFixed(3),
+        bandwidthCostTRX: (bandwidthCost / RESOURCE_PRICES.sunPerTRX).toFixed(3),
+        total: (totalCost / RESOURCE_PRICES.sunPerTRX).toFixed(3),
+        note: `Energy price: ${RESOURCE_PRICES.energyPriceSun} SUN/unit, Bandwidth price: ${RESOURCE_PRICES.bandwidthPriceSun} SUN/point. If you have staked TRX for energy/bandwidth, actual TRX cost will be lower. Each account gets ${RESOURCE_PRICES.freeBandwidthPerDay} free bandwidth points per day.`,
+    };
+}
+/**
+ * Estimate energy, bandwidth, and TRX cost for any JustLend operation.
+ * Tries on-chain simulation first, falls back to historical typical values.
+ */
+export async function estimateLendingEnergy(operation, jTokenSymbol, amount, ownerAddress, network = "mainnet") {
+    const tronWeb = getTronWeb(network);
+    const addresses = getJustLendAddresses(network);
+    const steps = [];
+    const sim = (addr, fn, params, opts = {}) => trySimulateEnergy(tronWeb, ownerAddress, addr, fn, params, opts);
+    let info;
+    if (operation !== "claim_rewards") {
+        info = resolveJToken(jTokenSymbol, network);
+    }
+    const isTRX = info ? (info.underlyingSymbol === "TRX" || !info.underlying) : false;
+    switch (operation) {
+        case "approve": {
+            if (isTRX || !info.underlying)
+                throw new Error(`${jTokenSymbol} is native TRX — no approval needed`);
+            const r = await sim(info.underlying, "approve(address,uint256)", [
+                { type: "address", value: info.address }, { type: "uint256", value: MAX_UINT256 },
+            ]);
+            steps.push(buildStep("approve", `Approve ${info.underlyingSymbol} for ${jTokenSymbol}`, r, "approve"));
+            break;
+        }
+        case "supply": {
+            const amountRaw = BigInt(Math.floor(parseFloat(amount) * 10 ** info.underlyingDecimals)).toString();
+            if (!isTRX && info.underlying) {
+                const ar = await sim(info.underlying, "approve(address,uint256)", [
+                    { type: "address", value: info.address }, { type: "uint256", value: MAX_UINT256 },
+                ]);
+                steps.push(buildStep("approve", `Approve ${info.underlyingSymbol} for ${jTokenSymbol}`, ar, "approve"));
+            }
+            if (isTRX) {
+                const mr = await sim(info.address, "mint()", [], { callValue: amountRaw });
+                steps.push(buildStep("mint", `Supply ${amount} TRX to ${jTokenSymbol}`, mr, "supply_trx"));
+            }
+            else {
+                const mr = await sim(info.address, "mint(uint256)", [{ type: "uint256", value: amountRaw }]);
+                steps.push(buildStep("mint", `Supply ${amount} ${info.underlyingSymbol} to ${jTokenSymbol}`, mr, "supply_trc20"));
+            }
+            break;
+        }
+        case "withdraw": {
+            const amountRaw = BigInt(Math.floor(parseFloat(amount) * 10 ** info.underlyingDecimals)).toString();
+            const r = await sim(info.address, "redeemUnderlying(uint256)", [{ type: "uint256", value: amountRaw }]);
+            steps.push(buildStep("redeemUnderlying", `Withdraw ${amount} ${info.underlyingSymbol} from ${jTokenSymbol}`, r, "withdraw"));
+            break;
+        }
+        case "withdraw_all": {
+            // withdraw_all uses redeem(jTokenBalance), simulate with a typical jToken amount
+            const r = await sim(info.address, "redeem(uint256)", [{ type: "uint256", value: "100000000" }]);
+            steps.push(buildStep("redeem", `Withdraw all ${info.underlyingSymbol} from ${jTokenSymbol}`, r, "withdraw_all"));
+            break;
+        }
+        case "borrow": {
+            const amountRaw = BigInt(Math.floor(parseFloat(amount) * 10 ** info.underlyingDecimals)).toString();
+            const r = await sim(info.address, "borrow(uint256)", [{ type: "uint256", value: amountRaw }]);
+            steps.push(buildStep("borrow", `Borrow ${amount} ${info.underlyingSymbol} from ${jTokenSymbol}`, r, "borrow"));
+            break;
+        }
+        case "repay": {
+            const amountRaw = BigInt(Math.floor(parseFloat(amount) * 10 ** info.underlyingDecimals)).toString();
+            if (!isTRX && info.underlying) {
+                const ar = await sim(info.underlying, "approve(address,uint256)", [
+                    { type: "address", value: info.address }, { type: "uint256", value: MAX_UINT256 },
+                ]);
+                steps.push(buildStep("approve", `Approve ${info.underlyingSymbol} for ${jTokenSymbol}`, ar, "approve"));
+            }
+            if (isTRX) {
+                const r = await sim(info.address, "repayBorrow()", [], { callValue: amountRaw });
+                steps.push(buildStep("repayBorrow", `Repay ${amount} TRX to ${jTokenSymbol}`, r, "repay_trx"));
+            }
+            else {
+                const r = await sim(info.address, "repayBorrow(uint256)", [{ type: "uint256", value: amountRaw }]);
+                steps.push(buildStep("repayBorrow", `Repay ${amount} ${info.underlyingSymbol} to ${jTokenSymbol}`, r, "repay_trc20"));
+            }
+            break;
+        }
+        case "enter_market": {
+            const r = await sim(addresses.comptroller, "enterMarkets(address[])", [{ type: "address[]", value: [info.address] }]);
+            steps.push(buildStep("enterMarkets", `Enable ${jTokenSymbol} as collateral`, r, "enter_market"));
+            break;
+        }
+        case "exit_market": {
+            const r = await sim(addresses.comptroller, "exitMarket(address)", [{ type: "address", value: info.address }]);
+            steps.push(buildStep("exitMarket", `Disable ${jTokenSymbol} as collateral`, r, "exit_market"));
+            break;
+        }
+        case "claim_rewards": {
+            const r = await sim(addresses.comptroller, "claimReward(address)", [{ type: "address", value: ownerAddress }]);
+            steps.push(buildStep("claimReward", `Claim JustLend mining rewards`, r, "claim_rewards"));
+            break;
+        }
+    }
+    const totalEnergy = steps.reduce((sum, s) => sum + s.energyEstimate, 0);
+    const totalBandwidth = steps.reduce((sum, s) => sum + s.bandwidthEstimate, 0);
+    const hasTypical = steps.some((s) => s.energySource === "typical");
+    const cost = calculateTRXCost(totalEnergy, totalBandwidth);
+    return {
+        operation,
+        market: jTokenSymbol,
+        steps,
+        totalEnergy,
+        totalBandwidth,
+        estimatedTRXCost: cost.total,
+        costBreakdown: {
+            energyCostTRX: cost.energyCostTRX,
+            bandwidthCostTRX: cost.bandwidthCostTRX,
+            note: cost.note,
+        },
+        note: hasTypical
+            ? "Some steps could not be simulated on-chain (e.g. insufficient balance or missing approval). Typical values from historical data are used. Actual costs may vary."
+            : "All steps were successfully simulated on-chain. Actual costs should be close to these estimates.",
+    };
 }
 //# sourceMappingURL=lending.js.map
