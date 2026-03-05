@@ -308,7 +308,7 @@ export function registerJustLendTools(server: McpServer) {
   server.registerTool(
     "get_token_balance",
     {
-      description: "Get TRC20 token balance for an address.",
+      description: "Get TRC20 token balance for an address. The returned balance is already formatted in human-readable token units (decimals already applied). Do NOT divide the balance by decimals again.",
       inputSchema: {
         tokenAddress: z.string().describe("TRC20 token contract address"),
         address: z.string().optional().describe("TRON address. Default: configured wallet"),
@@ -320,7 +320,13 @@ export function registerJustLendTools(server: McpServer) {
       try {
         const userAddress = address || services.getWalletAddress();
         const result = await services.getTokenBalance(userAddress, tokenAddress, network);
-        return { content: [{ type: "text", text: JSON.stringify({ address: userAddress, ...result }, null, 2) }] };
+        return { content: [{ type: "text", text: JSON.stringify({
+          address: userAddress,
+          balance: result.balance,
+          balanceNote: "This balance is already in human-readable token units (decimals already applied). Do not divide again.",
+          symbol: result.symbol,
+          decimals: result.decimals,
+        }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
       }
