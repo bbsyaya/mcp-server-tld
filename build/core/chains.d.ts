@@ -35,6 +35,7 @@ export interface JustLendAddresses {
     governorAlpha: string;
     jst: string;
     wjst: string;
+    poly: string;
     /** Merkle distributor contracts for mining rewards */
     merkleDistributors: {
         main: string;

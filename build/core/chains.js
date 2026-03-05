@@ -46,6 +46,7 @@ export const JUSTLEND_ADDRESSES = {
         governorAlpha: "TEqiF5JbhDPD77yjEfnEMncGRZNDt2uogD",
         jst: "TCFLL5dx5ZJdKnWuesXxi1VPwjLVmWZZy9",
         wjst: "TXk9LnTnLN7oH96H3sKxJayMxLxR9M4ZD6",
+        poly: "TXTXGyhNLhELNZPDXsn5fCnGYLZoLwJvRC",
         merkleDistributors: {
             main: "TQoiXqruw4SqYPwHAd6QiNZ3ES4rLsejAj",
             usdd: "TYxJzmeDyxuxFbaGywjivfkft75qLeS485",
@@ -243,6 +244,7 @@ export const JUSTLEND_ADDRESSES = {
         governorAlpha: "TYCNENqt2oJK7eiwubi6YXXt8RHR1BnzBs",
         jst: "TJqk3ChKSjmpoNm3gaqSEatNsueD37NGDK",
         wjst: "TCxA1eNhsAV3gvUwLjLtREW9f775V4h1h7",
+        poly: "TFbotxCdaph4U4YheVg2tmCyNGheFEGw4N",
         merkleDistributors: {
             main: "TUQb328PQfbredVY3qUD9NZ6DipFxSRZ84",
             usdd: "TMoWFKhkyKUNtxm7P2pMyM7TsVkX9zB7sm",

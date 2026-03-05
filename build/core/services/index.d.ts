@@ -4,6 +4,7 @@ export * from "./markets.js";
 export * from "./account.js";
 export * from "./lending.js";
 export * from "./rewards.js";
+export * from "./voting.js";
 export * from "./address.js";
 export * from "./balance.js";
 export * from "./blocks.js";

@@ -86,6 +86,41 @@ export declare const TRC20_ABI: {
     }[];
     stateMutability: string;
 }[];
+export declare const GOVERNOR_ALPHA_ABI: {
+    type: string;
+    name: string;
+    inputs: {
+        type: string;
+        name: string;
+    }[];
+    outputs: never[];
+    stateMutability: string;
+}[];
+export declare const WJST_ABI: {
+    type: string;
+    name: string;
+    inputs: {
+        type: string;
+        name: string;
+    }[];
+    outputs: {
+        type: string;
+    }[];
+    stateMutability: string;
+}[];
+export declare const POLY_ABI: {
+    type: string;
+    name: string;
+    inputs: {
+        type: string;
+        name: string;
+    }[];
+    outputs: {
+        type: string;
+        name: string;
+    }[];
+    stateMutability: string;
+}[];
 export declare const INTEREST_RATE_MODEL_ABI: {
     type: string;
     name: string;
