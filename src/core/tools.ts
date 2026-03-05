@@ -368,7 +368,26 @@ export function registerJustLendTools(server: McpServer) {
   // LENDING OPERATIONS (Write — require private key)
   // Typical resource costs are included in descriptions and responses.
   // Use estimate_lending_energy tool for precise on-chain simulation before executing.
+  // Each write operation checks energy/bandwidth sufficiency and warns if TRX will be burned.
   // ============================================================================
+
+  /**
+   * Helper: check resource sufficiency and return warning object for tool responses.
+   */
+  async function getResourceWarning(
+    ownerAddress: string,
+    operation: string,
+    isTRX: boolean,
+    network: string,
+  ) {
+    try {
+      const typical = services.getTypicalResources(operation, isTRX);
+      const warning = await services.checkResourceSufficiency(ownerAddress, typical.energy, typical.bandwidth, network);
+      return warning.warning ? { resourceWarning: warning } : {};
+    } catch {
+      return {};
+    }
+  }
 
   server.registerTool(
     "supply",
@@ -377,7 +396,7 @@ export function registerJustLendTools(server: McpServer) {
         "Supply (deposit) assets into a JustLend market to earn interest. " +
         "For TRC20 markets, you must first call approve_underlying. For jTRX, TRX is sent directly. " +
         "Returns a jToken balance representing your deposit. " +
-        "Typical cost: ~200,000 energy + ~310 bandwidth for TRC20, ~150,000 energy + ~280 bandwidth for TRX. " +
+        "Typical cost: ~100,000 energy + ~310 bandwidth for TRC20, ~80,000 energy + ~280 bandwidth for TRX. " +
         "Use estimate_lending_energy tool for precise estimates before executing.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
@@ -389,10 +408,15 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, amount, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const info = getJTokenInfo(market, network);
+        const isTRX = info ? (info.underlyingSymbol === "TRX" || !info.underlying) : false;
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "supply", isTRX, network);
         const result = await services.supply(privateKey, market, amount, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "150,000~200,000", bandwidth: "280~310", note: "TRC20 supply costs more than TRX. Excludes approve step." },
+          typicalResources: { energy: isTRX ? "~80,000" : "~100,000", bandwidth: isTRX ? "~280" : "~310", note: "TRC20 supply costs more than TRX. Excludes approve step." },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -406,7 +430,7 @@ export function registerJustLendTools(server: McpServer) {
       description:
         "Withdraw (redeem) supplied assets from a JustLend market. " +
         "Specify the amount in underlying units. May fail if assets are used as collateral for active borrows. " +
-        "Typical cost: ~180,000 energy + ~300 bandwidth.",
+        "Typical cost: ~90,000 energy + ~300 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
         amount: z.string().describe("Amount of underlying to withdraw (e.g. '500')"),
@@ -417,10 +441,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, amount, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "withdraw", false, network);
         const result = await services.withdraw(privateKey, market, amount, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~180,000", bandwidth: "~300" },
+          typicalResources: { energy: "~90,000", bandwidth: "~300" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -433,7 +460,7 @@ export function registerJustLendTools(server: McpServer) {
     {
       description:
         "Withdraw ALL supplied assets from a JustLend market by redeeming all jTokens. " +
-        "Typical cost: ~180,000 energy + ~300 bandwidth.",
+        "Typical cost: ~90,000 energy + ~300 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT')"),
         network: z.string().optional().describe("Network. Default: mainnet"),
@@ -443,10 +470,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "withdraw_all", false, network);
         const result = await services.withdrawAll(privateKey, market, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~180,000", bandwidth: "~300" },
+          typicalResources: { energy: "~90,000", bandwidth: "~300" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -461,7 +491,7 @@ export function registerJustLendTools(server: McpServer) {
         "Borrow assets from a JustLend market against your collateral. " +
         "You must have entered a market as collateral (enter_market) and have sufficient liquidity. " +
         "Check your account_summary and health_factor before borrowing. " +
-        "Typical cost: ~200,000 energy + ~310 bandwidth.",
+        "Typical cost: ~100,000 energy + ~310 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
         amount: z.string().describe("Amount of underlying to borrow (e.g. '500')"),
@@ -472,10 +502,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, amount, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "borrow", false, network);
         const result = await services.borrow(privateKey, market, amount, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~200,000", bandwidth: "~310" },
+          typicalResources: { energy: "~100,000", bandwidth: "~310" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -490,7 +523,7 @@ export function registerJustLendTools(server: McpServer) {
         "Repay borrowed assets to a JustLend market. " +
         "For TRC20 markets, must have approved underlying first. " +
         "Use amount='max' to repay the full outstanding borrow. " +
-        "Typical cost: ~150,000~180,000 energy + ~280~320 bandwidth (TRX costs less than TRC20).",
+        "Typical cost: ~80,000~90,000 energy + ~280~320 bandwidth (TRX costs less than TRC20).",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
         amount: z.string().describe("Amount to repay (e.g. '500'), or 'max' for full repayment"),
@@ -501,10 +534,15 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, amount, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const info = getJTokenInfo(market, network);
+        const isTRX = info ? (info.underlyingSymbol === "TRX" || !info.underlying) : false;
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "repay", isTRX, network);
         const result = await services.repay(privateKey, market, amount, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "150,000~180,000", bandwidth: "280~320", note: "TRC20 repay costs more than TRX. Excludes approve step." },
+          typicalResources: { energy: isTRX ? "~80,000" : "~90,000", bandwidth: isTRX ? "~280" : "~320", note: "TRC20 repay costs more than TRX. Excludes approve step." },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -518,7 +556,7 @@ export function registerJustLendTools(server: McpServer) {
       description:
         "Enable a jToken market as collateral. Required before borrowing against supplied assets. " +
         "Once entered, your supply in this market counts towards your borrowing capacity. " +
-        "Typical cost: ~150,000 energy + ~300 bandwidth.",
+        "Typical cost: ~80,000 energy + ~300 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
         network: z.string().optional().describe("Network. Default: mainnet"),
@@ -528,10 +566,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "enter_market", false, network);
         const result = await services.enterMarket(privateKey, market, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~150,000", bandwidth: "~300" },
+          typicalResources: { energy: "~80,000", bandwidth: "~300" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -545,7 +586,7 @@ export function registerJustLendTools(server: McpServer) {
       description:
         "Disable a jToken market as collateral. Will fail if doing so would make your account undercollateralized. " +
         "Check account_summary first to ensure safety. " +
-        "Typical cost: ~100,000 energy + ~280 bandwidth.",
+        "Typical cost: ~50,000 energy + ~280 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT')"),
         network: z.string().optional().describe("Network. Default: mainnet"),
@@ -555,10 +596,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "exit_market", false, network);
         const result = await services.exitMarket(privateKey, market, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~100,000", bandwidth: "~280" },
+          typicalResources: { energy: "~50,000", bandwidth: "~280" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -573,7 +617,7 @@ export function registerJustLendTools(server: McpServer) {
         "Approve the jToken contract to spend your underlying TRC20 tokens. " +
         "Required before supply() or repay() for TRC20-backed markets (not needed for jTRX). " +
         "Use amount='max' for unlimited approval. " +
-        "Typical cost: ~22,000 energy + ~265 bandwidth.",
+        "Typical cost: ~23,000 energy + ~265 bandwidth.",
       inputSchema: {
         market: z.string().describe("jToken symbol (e.g. 'jUSDT')"),
         amount: z.string().optional().describe("Amount to approve, or 'max' for unlimited. Default: max"),
@@ -584,10 +628,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ market, amount = "max", network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "approve", false, network);
         const result = await services.approveUnderlying(privateKey, market, amount, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~22,000", bandwidth: "~265" },
+          typicalResources: { energy: "~23,000", bandwidth: "~265" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -600,7 +647,7 @@ export function registerJustLendTools(server: McpServer) {
     {
       description:
         "Claim accrued JustLend mining rewards for the configured wallet. " +
-        "Typical cost: ~120,000 energy + ~330 bandwidth.",
+        "Typical cost: ~60,000 energy + ~330 bandwidth.",
       inputSchema: {
         network: z.string().optional().describe("Network. Default: mainnet"),
       },
@@ -609,10 +656,13 @@ export function registerJustLendTools(server: McpServer) {
     async ({ network = "mainnet" }) => {
       try {
         const privateKey = services.getConfiguredPrivateKey();
+        const walletAddr = services.getWalletAddress();
+        const resourceWarning = await getResourceWarning(walletAddr, "claim_rewards", false, network);
         const result = await services.claimRewards(privateKey, network);
         return { content: [{ type: "text", text: JSON.stringify({
           ...result,
-          typicalResources: { energy: "~120,000", bandwidth: "~330" },
+          typicalResources: { energy: "~60,000", bandwidth: "~330" },
+          ...resourceWarning,
         }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
@@ -647,7 +697,12 @@ export function registerJustLendTools(server: McpServer) {
       try {
         const userAddress = address || services.getWalletAddress();
         const result = await services.estimateLendingEnergy(operation, market, amount, userAddress, network);
-        return { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] };
+        // Also check resource sufficiency
+        const resourceCheck = await services.checkResourceSufficiency(userAddress, result.totalEnergy, result.totalBandwidth, network);
+        return { content: [{ type: "text", text: JSON.stringify({
+          ...result,
+          ...(resourceCheck.warning ? { resourceWarning: resourceCheck } : {}),
+        }, null, 2) }] };
       } catch (error: any) {
         return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };
       }

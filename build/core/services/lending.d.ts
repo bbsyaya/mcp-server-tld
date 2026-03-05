@@ -148,6 +148,35 @@ export interface ResourceEstimation {
     note: string;
 }
 export type LendingOperation = "supply" | "withdraw" | "withdraw_all" | "borrow" | "repay" | "enter_market" | "exit_market" | "approve" | "claim_rewards";
+export interface ResourceWarning {
+    hasEnoughEnergy: boolean;
+    hasEnoughBandwidth: boolean;
+    accountEnergy: number;
+    accountBandwidth: number;
+    requiredEnergy: number;
+    requiredBandwidth: number;
+    energyDeficit: number;
+    bandwidthDeficit: number;
+    /** Estimated TRX that will be burned to cover the energy deficit */
+    energyBurnTRX: string;
+    /** Estimated TRX that will be burned to cover the bandwidth deficit */
+    bandwidthBurnTRX: string;
+    /** Total TRX that will be burned (energy + bandwidth deficit) */
+    totalBurnTRX: string;
+    warning: string;
+}
+/**
+ * Check if user has enough staked energy/bandwidth for an operation.
+ * Returns a warning object if resources are insufficient.
+ */
+export declare function checkResourceSufficiency(ownerAddress: string, requiredEnergy: number, requiredBandwidth: number, network?: string): Promise<ResourceWarning>;
+/**
+ * Get typical resource requirements for a lending operation.
+ */
+export declare function getTypicalResources(operation: string, isTRX: boolean): {
+    energy: number;
+    bandwidth: number;
+};
 /**
  * Estimate energy, bandwidth, and TRX cost for any JustLend operation.
  * Tries on-chain simulation first, falls back to historical typical values.

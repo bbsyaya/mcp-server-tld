@@ -29,7 +29,7 @@ export const JTOKEN_ABI = [
         type: "function", name: "getAccountSnapshot",
         inputs: [{ type: "address", name: "account" }],
         outputs: [
-            { type: "uint256", name: "error" },
+            { type: "uint256", name: "err" },
             { type: "uint256", name: "jTokenBalance" },
             { type: "uint256", name: "borrowBalance" },
             { type: "uint256", name: "exchangeRateMantissa" },
@@ -90,7 +90,7 @@ export const COMPTROLLER_ABI = [
         type: "function", name: "getAccountLiquidity",
         inputs: [{ type: "address", name: "account" }],
         outputs: [
-            { type: "uint256", name: "error" },
+            { type: "uint256", name: "err" },
             { type: "uint256", name: "liquidity" },
             { type: "uint256", name: "shortfall" },
         ],

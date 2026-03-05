@@ -239,17 +239,17 @@ export async function claimRewards(privateKey, network = "mainnet") {
  * Used as fallback when triggerConstantContract simulation reverts.
  */
 const TYPICAL_RESOURCES = {
-    approve: { energy: 22000, bandwidth: 265 },
-    supply_trx: { energy: 150000, bandwidth: 280 },
-    supply_trc20: { energy: 200000, bandwidth: 310 },
-    withdraw: { energy: 180000, bandwidth: 300 },
-    withdraw_all: { energy: 180000, bandwidth: 300 },
-    borrow: { energy: 200000, bandwidth: 310 },
-    repay_trx: { energy: 150000, bandwidth: 280 },
-    repay_trc20: { energy: 180000, bandwidth: 320 },
-    enter_market: { energy: 150000, bandwidth: 300 },
-    exit_market: { energy: 100000, bandwidth: 280 },
-    claim_rewards: { energy: 120000, bandwidth: 330 },
+    approve: { energy: 23000, bandwidth: 265 },
+    supply_trx: { energy: 80000, bandwidth: 280 },
+    supply_trc20: { energy: 100000, bandwidth: 310 },
+    withdraw: { energy: 90000, bandwidth: 300 },
+    withdraw_all: { energy: 90000, bandwidth: 300 },
+    borrow: { energy: 100000, bandwidth: 310 },
+    repay_trx: { energy: 80000, bandwidth: 280 },
+    repay_trc20: { energy: 90000, bandwidth: 320 },
+    enter_market: { energy: 80000, bandwidth: 300 },
+    exit_market: { energy: 50000, bandwidth: 280 },
+    claim_rewards: { energy: 60000, bandwidth: 330 },
 };
 /** Current TRON mainnet resource prices (SUN per unit). May change via governance votes. */
 const RESOURCE_PRICES = {
@@ -303,6 +303,57 @@ function calculateTRXCost(totalEnergy, totalBandwidth) {
         total: (totalCost / RESOURCE_PRICES.sunPerTRX).toFixed(3),
         note: `Energy price: ${RESOURCE_PRICES.energyPriceSun} SUN/unit, Bandwidth price: ${RESOURCE_PRICES.bandwidthPriceSun} SUN/point. If you have staked TRX for energy/bandwidth, actual TRX cost will be lower. Each account gets ${RESOURCE_PRICES.freeBandwidthPerDay} free bandwidth points per day.`,
     };
+}
+/**
+ * Check if user has enough staked energy/bandwidth for an operation.
+ * Returns a warning object if resources are insufficient.
+ */
+export async function checkResourceSufficiency(ownerAddress, requiredEnergy, requiredBandwidth, network = "mainnet") {
+    const tronWeb = getTronWeb(network);
+    const resources = await tronWeb.trx.getAccountResources(ownerAddress);
+    const totalEnergy = (resources.EnergyLimit || 0) - (resources.EnergyUsed || 0);
+    const totalBandwidth = ((resources.freeNetLimit || 0) - (resources.freeNetUsed || 0)) +
+        ((resources.NetLimit || 0) - (resources.NetUsed || 0));
+    const energyDeficit = Math.max(0, requiredEnergy - totalEnergy);
+    const bandwidthDeficit = Math.max(0, requiredBandwidth - totalBandwidth);
+    const energyBurnTRX = energyDeficit * RESOURCE_PRICES.energyPriceSun / RESOURCE_PRICES.sunPerTRX;
+    const bandwidthBurnTRX = bandwidthDeficit * RESOURCE_PRICES.bandwidthPriceSun / RESOURCE_PRICES.sunPerTRX;
+    const warnings = [];
+    if (energyDeficit > 0) {
+        warnings.push(`Energy insufficient: you have ${totalEnergy} but need ~${requiredEnergy}. ` +
+            `Deficit of ${energyDeficit} energy will burn ~${energyBurnTRX.toFixed(3)} TRX.`);
+    }
+    if (bandwidthDeficit > 0) {
+        warnings.push(`Bandwidth insufficient: you have ${totalBandwidth} but need ~${requiredBandwidth}. ` +
+            `Deficit of ${bandwidthDeficit} bandwidth will burn ~${bandwidthBurnTRX.toFixed(3)} TRX.`);
+    }
+    return {
+        hasEnoughEnergy: energyDeficit === 0,
+        hasEnoughBandwidth: bandwidthDeficit === 0,
+        accountEnergy: totalEnergy,
+        accountBandwidth: totalBandwidth,
+        requiredEnergy,
+        requiredBandwidth,
+        energyDeficit,
+        bandwidthDeficit,
+        energyBurnTRX: energyBurnTRX.toFixed(3),
+        bandwidthBurnTRX: bandwidthBurnTRX.toFixed(3),
+        totalBurnTRX: (energyBurnTRX + bandwidthBurnTRX).toFixed(3),
+        warning: warnings.length > 0
+            ? `⚠️ RESOURCE WARNING: ${warnings.join(" ")} Consider staking TRX for energy to reduce costs.`
+            : "",
+    };
+}
+/**
+ * Get typical resource requirements for a lending operation.
+ */
+export function getTypicalResources(operation, isTRX) {
+    let key = operation;
+    if (operation === "supply")
+        key = isTRX ? "supply_trx" : "supply_trc20";
+    if (operation === "repay")
+        key = isTRX ? "repay_trx" : "repay_trc20";
+    return TYPICAL_RESOURCES[key] || { energy: 100000, bandwidth: 300 };
 }
 /**
  * Estimate energy, bandwidth, and TRX cost for any JustLend operation.

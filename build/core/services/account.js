@@ -41,7 +41,7 @@ export async function getAccountSummary(userAddress, network = "mainnet") {
     const collateralSet = new Set(assetsIn.map((a) => a.toLowerCase()));
     // Get account liquidity
     const [error, liquidity, shortfall] = await comptroller.methods.getAccountLiquidity(userAddress).call()
-        .then((r) => [BigInt(r.error || r[0]), BigInt(r.liquidity || r[1]), BigInt(r.shortfall || r[2])]);
+        .then((r) => [BigInt(r.err || r[0]), BigInt(r.liquidity || r[1]), BigInt(r.shortfall || r[2])]);
     // Get oracle for prices
     let oracle;
     try {
