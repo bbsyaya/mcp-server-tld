@@ -40,7 +40,7 @@ export const NETWORKS = {
 export const JUSTLEND_ADDRESSES = {
     [TronNetwork.Mainnet]: {
         comptroller: "TGjYzgCyPobsNS9n6WcbdLVR9dH7mWqFx7",
-        priceOracle: "TXjzHPaDeR2KYXQ3Gfwj82PQ2qHaGThFhi",
+        priceOracle: "TGnYnSn4G9PgWFj7QQemh4YMZKp3fkympJ",
         lens: "TFTBTMrrMDBbAGrFQzsSiMdoTSMvkung8V",
         maximillion: "T9gCxZ3YpmGftPmGPUNTFfMX7pJNPob4s1",
         governorAlpha: "TEqiF5JbhDPD77yjEfnEMncGRZNDt2uogD",

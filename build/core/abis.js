@@ -67,6 +67,12 @@ export const JTOKEN_ABI = [
 export const JTRX_MINT_ABI = [
     { type: "function", name: "mint", inputs: [], outputs: [], stateMutability: "payable" },
 ];
+/**
+ * jTRX-specific repayBorrow (payable, no params — callValue carries TRX amount)
+ */
+export const JTRX_REPAY_ABI = [
+    { type: "function", name: "repayBorrow", inputs: [], outputs: [], stateMutability: "payable" },
+];
 // ============================================================================
 // Comptroller ABI
 // ============================================================================

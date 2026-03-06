@@ -127,6 +127,10 @@ interface StepEstimate {
     step: string;
     description: string;
     energyEstimate: number;
+    /** Base energy (energyEstimate - energyPenalty). Only meaningful when energyPenalty > 0. */
+    energyBase: number;
+    /** Dynamic energy penalty for high-traffic contracts. Included in energyEstimate. */
+    energyPenalty: number;
     bandwidthEstimate: number;
     energySource: "simulation" | "typical";
     simulationError?: string;
@@ -180,7 +184,21 @@ export declare function getTypicalResources(operation: string, isTRX: boolean): 
 /**
  * Estimate energy, bandwidth, and TRX cost for any JustLend operation.
  * Tries on-chain simulation first, falls back to historical typical values.
+ *
+ * @param spender - (optional) Custom spender address for approve operations. Defaults to jToken address.
  */
-export declare function estimateLendingEnergy(operation: LendingOperation, jTokenSymbol: string, amount: string, ownerAddress: string, network?: string): Promise<ResourceEstimation>;
+export declare function estimateLendingEnergy(operation: LendingOperation, jTokenSymbol: string, amount: string, ownerAddress: string, network?: string, spender?: string): Promise<ResourceEstimation>;
+/**
+ * Simulate on-chain resource consumption for a lending operation.
+ * Uses trySimulateEnergy for real estimation, falls back to TYPICAL_RESOURCES on failure.
+ *
+ * This is a lightweight version of estimateLendingEnergy — it only returns
+ * { energy, bandwidth } for use in pre-transaction resource warnings.
+ */
+export declare function simulateOperationResources(operation: string, jTokenSymbol: string, amount: string, ownerAddress: string, network?: string): Promise<{
+    energy: number;
+    bandwidth: number;
+    source: "simulation" | "typical";
+}>;
 export {};
 //# sourceMappingURL=lending.d.ts.map

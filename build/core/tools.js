@@ -303,11 +303,11 @@ export function registerJustLendTools(server) {
     /**
      * Helper: check resource sufficiency and return warning object for tool responses.
      */
-    async function getResourceWarning(ownerAddress, operation, isTRX, network) {
+    async function getResourceWarning(ownerAddress, operation, isTRX, network, jTokenSymbol, amount) {
         try {
-            const typical = services.getTypicalResources(operation, isTRX);
-            const warning = await services.checkResourceSufficiency(ownerAddress, typical.energy, typical.bandwidth, network);
-            return warning.warning ? { resourceWarning: warning } : {};
+            const estimated = await services.simulateOperationResources(operation, jTokenSymbol || "", amount || "0", ownerAddress, network);
+            const warning = await services.checkResourceSufficiency(ownerAddress, estimated.energy, estimated.bandwidth, network);
+            return warning.warning ? { resourceWarning: { ...warning, estimationSource: estimated.source } } : {};
         }
         catch {
             return {};
@@ -331,11 +331,10 @@ export function registerJustLendTools(server) {
             const info = getJTokenInfo(market, network);
             const isTRX = info ? (info.underlyingSymbol === "TRX" || !info.underlying) : false;
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "supply", isTRX, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "supply", isTRX, network, market, amount);
             const result = await services.supply(privateKey, market, amount, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: isTRX ? "~80,000" : "~100,000", bandwidth: isTRX ? "~280" : "~310", note: "TRC20 supply costs more than TRX. Excludes approve step." },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -357,11 +356,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "withdraw", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "withdraw", false, network, market, amount);
             const result = await services.withdraw(privateKey, market, amount, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~90,000", bandwidth: "~300" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -381,11 +379,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "withdraw_all", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "withdraw_all", false, network, market);
             const result = await services.withdrawAll(privateKey, market, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~90,000", bandwidth: "~300" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -397,7 +394,7 @@ export function registerJustLendTools(server) {
         description: "Borrow assets from a JustLend market against your collateral. " +
             "You must have entered a market as collateral (enter_market) and have sufficient liquidity. " +
             "Check your account_summary and health_factor before borrowing. " +
-            "Typical cost: ~100,000 energy + ~310 bandwidth.",
+            "Typical cost: ~100,000 energy + ~313 bandwidth.",
         inputSchema: {
             market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX')"),
             amount: z.string().describe("Amount of underlying to borrow (e.g. '500')"),
@@ -408,11 +405,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "borrow", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "borrow", false, network, market, amount);
             const result = await services.borrow(privateKey, market, amount, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~100,000", bandwidth: "~310" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -437,11 +433,10 @@ export function registerJustLendTools(server) {
             const info = getJTokenInfo(market, network);
             const isTRX = info ? (info.underlyingSymbol === "TRX" || !info.underlying) : false;
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "repay", isTRX, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "repay", isTRX, network, market, amount);
             const result = await services.repay(privateKey, market, amount, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: isTRX ? "~80,000" : "~90,000", bandwidth: isTRX ? "~280" : "~320", note: "TRC20 repay costs more than TRX. Excludes approve step." },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -462,11 +457,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "enter_market", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "enter_market", false, network, market);
             const result = await services.enterMarket(privateKey, market, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~80,000", bandwidth: "~300" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -487,11 +481,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "exit_market", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "exit_market", false, network, market);
             const result = await services.exitMarket(privateKey, market, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~50,000", bandwidth: "~280" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -514,11 +507,10 @@ export function registerJustLendTools(server) {
         try {
             const privateKey = services.getConfiguredPrivateKey();
             const walletAddr = services.getWalletAddress();
-            const resourceWarning = await getResourceWarning(walletAddr, "approve", false, network);
+            const resourceWarning = await getResourceWarning(walletAddr, "approve", false, network, market, amount);
             const result = await services.approveUnderlying(privateKey, market, amount, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~23,000", bandwidth: "~265" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -541,7 +533,6 @@ export function registerJustLendTools(server) {
             const result = await services.claimRewards(privateKey, network);
             return { content: [{ type: "text", text: JSON.stringify({
                             ...result,
-                            typicalResources: { energy: "~60,000", bandwidth: "~330" },
                             ...resourceWarning,
                         }, null, 2) }] };
         }
@@ -557,20 +548,23 @@ export function registerJustLendTools(server) {
             "Covers ALL operations: supply, withdraw, withdraw_all, borrow, repay, approve, enter_market, exit_market, claim_rewards. " +
             "Tries on-chain simulation first; falls back to historical typical values if simulation fails. " +
             "Returns per-step breakdown (e.g. approve + mint for supply), total energy, total bandwidth, and estimated TRX cost. " +
+            "For supply/repay: automatically checks current allowance — if sufficient, the approve step is skipped. " +
+            "For approve: supports custom spender address (not just jToken). " +
             "Use this tool whenever the user asks about gas/energy/cost for any lending operation.",
         inputSchema: {
             operation: z.enum(["supply", "withdraw", "withdraw_all", "borrow", "repay", "approve", "enter_market", "exit_market", "claim_rewards"])
                 .describe("The operation to estimate resources for"),
             market: z.string().describe("jToken symbol (e.g. 'jUSDT', 'jTRX', 'jUSDD'). Required for all operations except claim_rewards."),
             amount: z.string().optional().describe("Amount in underlying token units (e.g. '100'). Default: '1'. Not needed for enter_market, exit_market, approve, withdraw_all, claim_rewards."),
+            spender: z.string().optional().describe("Custom spender address for approve operation. Default: jToken contract address. Only used when operation is 'approve'."),
             address: z.string().optional().describe("TRON address for simulation. Default: configured wallet"),
             network: z.string().optional().describe("Network. Default: mainnet"),
         },
         annotations: { title: "Estimate Operation Resources", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-    }, async ({ operation, market, amount = "1", address, network = "mainnet" }) => {
+    }, async ({ operation, market, amount = "1", spender, address, network = "mainnet" }) => {
         try {
             const userAddress = address || services.getWalletAddress();
-            const result = await services.estimateLendingEnergy(operation, market, amount, userAddress, network);
+            const result = await services.estimateLendingEnergy(operation, market, amount, userAddress, network, spender);
             // Also check resource sufficiency
             const resourceCheck = await services.checkResourceSufficiency(userAddress, result.totalEnergy, result.totalBandwidth, network);
             return { content: [{ type: "text", text: JSON.stringify({
@@ -632,15 +626,17 @@ export function registerJustLendTools(server) {
     // JST VOTING / GOVERNANCE
     // ============================================================================
     server.registerTool("get_proposal_list", {
-        description: "Get the list of JustLend DAO governance proposals. Returns all proposals with their status (Active, Passed, Defeated, etc.), vote counts, and details.",
+        description: "Get the list of JustLend DAO governance proposals. Returns proposals with their status (Active, Passed, Defeated, etc.), vote counts, and details. Sorted by newest first.",
         inputSchema: {
             network: z.string().optional().describe("Network. Default: mainnet"),
+            limit: z.number().optional().describe("Max number of proposals to return. Default: 10. Use 0 for all."),
         },
         annotations: { title: "Get Proposal List", readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-    }, async ({ network = "mainnet" }) => {
+    }, async ({ network = "mainnet", limit = 10 }) => {
         try {
             const data = await services.getProposalList(network);
-            return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+            const proposals = limit > 0 ? data.proposals.slice(0, limit) : data.proposals;
+            return { content: [{ type: "text", text: JSON.stringify({ proposals, total: data.total, returned: proposals.length }, null, 2) }] };
         }
         catch (error) {
             return { content: [{ type: "text", text: `Error: ${error.message}` }], isError: true };

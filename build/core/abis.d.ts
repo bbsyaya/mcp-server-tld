@@ -38,6 +38,16 @@ export declare const JTRX_MINT_ABI: {
     outputs: never[];
     stateMutability: string;
 }[];
+/**
+ * jTRX-specific repayBorrow (payable, no params — callValue carries TRX amount)
+ */
+export declare const JTRX_REPAY_ABI: {
+    type: string;
+    name: string;
+    inputs: never[];
+    outputs: never[];
+    stateMutability: string;
+}[];
 export declare const COMPTROLLER_ABI: ({
     type: string;
     name: string;

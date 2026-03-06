@@ -50,8 +50,12 @@ export async function getAccountSummary(userAddress, network = "mainnet") {
     catch {
         oracle = null;
     }
-    // Fetch position for each market
-    const positionPromises = jTokens.map(async (info) => {
+    // Fetch position for each market in batches to avoid TronGrid rate limiting (429).
+    // Processing all jTokens in parallel overwhelms the API; batching with a small
+    // delay between batches keeps us under the rate limit.
+    const BATCH_SIZE = 3;
+    const BATCH_DELAY_MS = 1000;
+    async function fetchPosition(info) {
         try {
             const jToken = tronWeb.contract(JTOKEN_ABI, info.address);
             const snapshot = await jToken.methods.getAccountSnapshot(userAddress).call();
@@ -92,9 +96,17 @@ export async function getAccountSummary(userAddress, network = "mainnet") {
         catch {
             return null;
         }
-    });
-    const results = await Promise.all(positionPromises);
-    const positions = results.filter((p) => p !== null);
+    }
+    const allResults = [];
+    for (let i = 0; i < jTokens.length; i += BATCH_SIZE) {
+        const batch = jTokens.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(batch.map(fetchPosition));
+        allResults.push(...batchResults);
+        if (i + BATCH_SIZE < jTokens.length) {
+            await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+        }
+    }
+    const positions = allResults.filter((p) => p !== null);
     const totalSupplyUSD = positions.reduce((sum, p) => sum + parseFloat(p.supplyValueUSD), 0);
     const totalBorrowUSD = positions.reduce((sum, p) => sum + parseFloat(p.borrowValueUSD), 0);
     // Health factor = totalCollateralValue / totalBorrowValue
