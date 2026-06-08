@@ -5,6 +5,14 @@
   "type": "module",
   "module": "src/index.ts",
   "main": "build/index.js",
+  "homepage": "https://github.com/bbsyaya/mcp-server-tld#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bbsyaya/mcp-server-tld.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bbsyaya/mcp-server-tld/issues"
+  },
   "bin": {
     "mcp-server-tld": "./bin/cli.js"
   },
